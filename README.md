@@ -46,7 +46,7 @@ ITMDA3-34 Group Project - Eduvos Pretoria.
 - GenerationService
 - InferenceRouter
 
-**Storage & models** - _group_member_name_
+**Storage & models** - _[@thatdudetebo](https://github.com/thatdudetebo)_
 
 - ModelManager
 - PreferencesService
