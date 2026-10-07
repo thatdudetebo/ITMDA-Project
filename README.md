@@ -21,9 +21,49 @@ ITMDA3-34 Group Project - Eduvos Pretoria.
 - **GGUF** - the compressed file format the AI model comes in.
 - **SQLite** - stores documents, text chunks and generated study material on the device.
 
----
+<br>
+<br>
 
 ## Collaborators
+
+**Ingestion** - _group_member_name_
+
+- DocumentService
+- ChunkingService
+
+**Retrieval** - _group_member_name_
+
+- EmbeddingService
+- RetrievalService
+
+**UI** - _group_member_name_
+
+- 5 screens, RootNavigator
+
+**Inference** - _[@SirMcKenzie](https://github.com/sirmckenzie)_
+
+- PromptBuilder
+- GenerationService
+- InferenceRouter
+
+**Storage & models** - _group_member_name_
+
+- ModelManager
+- PreferencesService
+- database queries
+
+<br>
+
+### Notes
+
+- pull from main often to avoid drifting from the main branch on your feature branch code.
+
+- if you install a package using `npm install` then the entire group needs to do the same after pulling main
+
+<br>
+<br>
+
+## Getting started
 
 You only need **Node 22** and an **Android phone**. No Android Studio, no JDK, no building.
 
@@ -98,7 +138,8 @@ Save a file and the app reloads instantly.
 
 Run `npm install` again whenever someone adds a package.
 
----
+<br>
+<br>
 
 ## Full setup - only for rebuilding the APK
 
@@ -131,7 +172,8 @@ npm run android
 First build takes 10-20 minutes because the AI engine compiles from source. Share the new
 `android/app/build/outputs/apk/debug/app-debug.apk` with the group afterwards.
 
----
+<br>
+<br>
 
 ## Watch out for
 

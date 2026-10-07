@@ -25,13 +25,16 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "prettier": "^3.9.9",
     "typescript": "~6.0.3"
   },
   "scripts": {
     "start": "expo start",
     "android": "ORG_GRADLE_PROJECT_reactNativeArchitectures=arm64-v8a expo run:android",
     "prebuild": "expo prebuild --platform android --clean",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "private": true
 }

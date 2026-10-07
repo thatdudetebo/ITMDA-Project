@@ -1,8 +1,8 @@
 // Values fixed in Deliverable 3. Change here, not inline.
 
-export const CHUNK_SIZE_TOKENS = 512;      // section 6.4.1
-export const CHUNK_OVERLAP_TOKENS = 50;    // section 6.4.1
-export const TOP_K = 5;                    // section 6.4.2
+export const CHUNK_SIZE_TOKENS = 512; // section 6.4.1
+export const CHUNK_OVERLAP_TOKENS = 50; // section 6.4.1
+export const TOP_K = 5; // section 6.4.2
 
 export const CONTEXT_WINDOW_TOKENS = 4096; // section 6.4.2
 export const RESERVED_OUTPUT_TOKENS = 600;

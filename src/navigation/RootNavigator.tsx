@@ -23,8 +23,16 @@ export default function RootNavigator() {
       <Drawer.Navigator initialRouteName="Home">
         <Drawer.Screen name="Home" component={HomeScreen} options={{ title: 'My library' }} />
         <Drawer.Screen name="Summary" component={SummaryScreen} options={{ title: 'Summaries' }} />
-        <Drawer.Screen name="Flashcards" component={FlashcardsScreen} options={{ title: 'Flashcards' }} />
-        <Drawer.Screen name="Questions" component={QuestionsScreen} options={{ title: 'Questions & answers' }} />
+        <Drawer.Screen
+          name="Flashcards"
+          component={FlashcardsScreen}
+          options={{ title: 'Flashcards' }}
+        />
+        <Drawer.Screen
+          name="Questions"
+          component={QuestionsScreen}
+          options={{ title: 'Questions & answers' }}
+        />
         <Drawer.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
       </Drawer.Navigator>
     </NavigationContainer>
