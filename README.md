@@ -1,58 +1,41 @@
 # StudyBee
 
-Offline AI study assistant for Android. Runs a small AI model directly on the phone, so students
-can turn their own notes and PDFs into summaries, flashcards and Q&A with no internet and no
-subscription.
+Offline AI study assistant for Android. Runs a small AI model directly on the phone, so
+students can turn their own notes and PDFs into summaries, flashcards and Q&A with no
+internet and no subscription.
 
-ITMDA3-34 Group Project - Eduvos Pretoria.
+ITMDA3-34 Group Project — Eduvos Pretoria.
 
 ---
-
-## What each piece does
-
-- **Node 22** - runs the build tools on your laptop; it is not part of the app itself.
-- **nvm** - switches Node versions so this project always builds on 22.
-- **JDK 17** - the Java toolchain Android builds with; newer versions fail.
-- **Android Studio** - supplies the Android SDK, the emulator and the device manager.
-- **NDK + CMake** - compile the C++ that the AI engine is written in.
-- **Expo** - manages the project and generates the native `android/` folder for us.
-- **React Native + TypeScript** - the app's screens and logic.
-- **llama.rn** - runs the AI model on the phone itself.
-- **GGUF** - the compressed file format the AI model comes in.
-- **SQLite** - stores documents, text chunks and generated study material on the device.
-
-<br>
 
 ## Collaborators
 
-| Area             | Branch              | Owner                                              | Files                                                   |
-| ---------------- | ------------------- | -------------------------------------------------- | ------------------------------------------------------- |
-| Ingestion        | `feature/ingestion` | _group_member_name_                                | `DocumentService`, `ChunkingService`                    |
-| Retrieval        | `feature/retrieval` | _group_member_name_                                | `EmbeddingService`, `RetrievalService`                  |
-| Inference        | `feature/inference` | [@SirMcKenzie](https://github.com/sirmckenzie)     | `PromptBuilder`, `GenerationService`, `InferenceRouter` |
-| UI               | `feature/ui`        | _group_member_name_                                | 5 screens, `RootNavigator`                              |
-| Storage & models | `feature/storage`   | _[@thatdudetebo](https://github.com/thatdudetebo)_ | `ModelManager`, `PreferencesService`, database queries  |
+| Area             | Branch              | Owner                                            | Files                                                   |
+| ---------------- | ------------------- | ------------------------------------------------ | ------------------------------------------------------- |
+| Ingestion        | `feature/ingestion` | _TBC_                                            | `DocumentService`, `ChunkingService`                    |
+| Retrieval        | `feature/retrieval` | _TBC_                                            | `EmbeddingService`, `RetrievalService`                  |
+| Inference        | `feature/inference` | [@SirMcKenzie](https://github.com/sirmckenzie)   | `PromptBuilder`, `GenerationService`, `InferenceRouter` |
+| UI               | `feature/ui`        | _TBC_                                            | 5 screens, `RootNavigator`                              |
+| Storage & models | `feature/storage`   | [@thatdudetebo](https://github.com/thatdudetebo) | `ModelManager`, `PreferencesService`, database queries  |
 
 ### Working agreements
 
-- Work on your own `feature/*` branch, never directly on `main`.
+- Work on your own `feature/*` branch, never on `main`.
 - Pull `main` into your branch often so you don't drift.
-- Run `npm run format` and `npm run typecheck` before you commit.
-- If you run `npm install` to add a package, tell the group - everyone must run `npm install`
-  after pulling.
-- Open a pull request into `main` when a piece works. One other person reviews before merging.
+- Run `npm run format` and `npm run typecheck` before every commit.
+- Added a package? Tell the group as everyone needs to run `npm install` after pulling.
+- Open a pull request into `main` when something works. One other person reviews it.
 
 <br>
 
 ---
 
-# First-time setup
+# Setup
 
-Do this once. You need **Node 22** and somewhere to run the app.
+You do this once.
 
-- **If you have an Android phone**, that's all - no Android Studio, no JDK.
-- **If you don't**, you'll install Android Studio for its emulator only. You still won't need a
-  JDK and you'll never compile anything.
+You need **Node 22** and somewhere to run the app. An Android phone, or an emulator if you
+don't have one. You will never compile anything and you do not need a JDK.
 
 ### 1. Install Node 22
 
@@ -63,14 +46,12 @@ brew install nvm
 mkdir ~/.nvm
 ```
 
-Add to `~/.zshrc`:
+Add these two lines to `~/.zshrc`, then open a **new terminal**:
 
 ```bash
 export NVM_DIR="$HOME/.nvm"
 [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"
 ```
-
-Open a **new terminal**, then:
 
 ```bash
 nvm install 22
@@ -78,35 +59,35 @@ nvm install 22
 
 **Windows**
 
-Download and run `nvm-setup.exe` from
-[nvm-windows](https://github.com/coreybutler/nvm-windows/releases). Then in PowerShell:
+Install `nvm-setup.exe` from
+[nvm-windows](https://github.com/coreybutler/nvm-windows/releases), then in PowerShell:
 
 ```powershell
 nvm install 22
 nvm use 22
 ```
 
-### 2. Set up somewhere to run the app
+### 2. Somewhere to run the app
 
-**With a phone** - nothing to do, move to step 3.
+**Using your own Android phone** there's nothing to install. Go to step 3.
 
-**Without a phone** - install [Android Studio](https://developer.android.com/studio) and create
-an emulator: Device Manager → Create Virtual Device → pick a Pixel → choose a system image
-(**arm64-v8a** on Apple Silicon Macs, **x86_64** on Intel Macs and Windows) → give it 4GB+ RAM.
+**No phone?** then install [Android Studio](https://developer.android.com/studio), then
+Device Manager → Create Virtual Device → any Pixel → system image **arm64-v8a** on Apple
+Silicon Macs or **x86_64** on Intel Macs and Windows → 4 GB+ RAM.
 
-You only need the emulator. Skip the SDK Tools, NDK and CMake options - those are for building
-the APK, which you won't do.
+You only need the emulator from Android Studio. You are not using it to build anything.
 
 ### 3. Install the StudyBee app
 
-Download `app-debug.apk` from
+Download the newest `app-debug.apk` from
 [Releases](https://github.com/thatdudetebo/ITMDA-Project/releases).
 
-- **On a phone** - open the file and allow "install from unknown sources" when prompted.
-- **On an emulator** - start the emulator, then drag the `.apk` file onto its window.
+- **Phone**: open the file, allow "install from unknown sources".
+- **Emulator**: start it, then drag the `.apk` onto its window.
 
-This is our app with the AI engine already compiled inside. You never build it yourself.
-[@SirMcKenzie](https://github.com/sirmckenzie) publishes a new release whenever one is needed.
+This is our app shell with the AI engine compiled inside. You never build it.
+[@SirMcKenzie](https://github.com/sirmckenzie) publishes a new one when the native
+dependencies change.
 
 ### 4. Get the code
 
@@ -117,6 +98,7 @@ git clone https://github.com/thatdudetebo/ITMDA-Project.git
 cd ITMDA-Project
 nvm use
 npm install
+git checkout feature/<your-area>
 ```
 
 **Windows**
@@ -126,48 +108,39 @@ git clone https://github.com/thatdudetebo/ITMDA-Project.git
 cd ITMDA-Project
 nvm use 22
 npm install
+git checkout feature/<your-area>
 ```
 
-### 5. Switch to your branch
+Your branch name is in the table at the top.
 
-Use the branch for your area from the table above:
+### 5. Run it
 
-```bash
-git checkout feature/ingestion
-```
-
-### 6. Start it up
-
-If you're using the emulator, make sure it is **running and fully booted** first - wait until
-you can see the home screen.
+Emulator users: start the emulator first and wait for the home screen.
 
 ```bash
 npm start
 ```
 
-- **On a phone** - open StudyBee and use its "Scan QR code" button on the code in your terminal.
-  Phone and laptop must be on the same Wi-Fi. If your network blocks it, stop and run
-  `npm start -- --tunnel` instead.
-- **On an emulator** - press `a` in the terminal.
+- **Phone**: open StudyBee, tap "Scan QR code", scan the code in your terminal. Phone and
+  laptop must be on the same Wi-Fi.
+- **Emulator**: press `a`.
 
-Save a file and the app reloads instantly. You're set up.
+Save a file and the app reloads. Done.
 
 <br>
 
 ---
 
-# Every time you come back to code
+# Every time you come back
 
 ```bash
 cd ITMDA-Project
-nvm use                 # Windows: nvm use 22
-git checkout feature/your-area
-git pull origin main    # bring in everyone else's merged work
-npm install             # only needed if someone added a package
+nvm use                      # Windows: nvm use 22
+git checkout feature/<your-area>
+git pull origin main         # everyone else's merged work
+npm install                  # harmless; required if anyone added a package
 npm start
 ```
-
-Then scan the QR code on your phone, or press `a` for the emulator.
 
 Before you commit:
 
@@ -182,85 +155,52 @@ Push your branch and open a pull request into `main` when a piece of work is fin
 
 ---
 
-# Rebuilding the APK
+# The AI model
 
-**Only [@SirMcKenzie](https://github.com/sirmckenzie) does this.** Everyone else skips this
-section entirely.
+The app ships without a model. The file is 100 MB to 1 GB and cannot live in a git repo.
+Nothing that calls the AI will work until a model is on your device.
 
-A rebuild is only needed when a **native dependency** changes - a package containing C++ or
-platform code. New screens, services, schema changes and ordinary TypeScript never require one,
-because your code reaches the app over Wi-Fi from Metro rather than being baked into the APK.
+Download **`SmolLM2-135M-Instruct-Q4_K_M.gguf`** (~100 MB) from
+[bartowski/SmolLM2-135M-Instruct-GGUF](https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF) then open "Files and versions" and click the download arrow on that row. _No account needed_.
 
-### One-time machine setup
+Then import it in the app: **Settings → Import model**, and pick the file you downloaded.
+The app copies it into its own storage. Do this once per device.
 
-Install JDK 17 and Android Studio. In SDK Manager tick **NDK**, **CMake** and
-**Command-line Tools**. Then add to `~/.zshrc` and open a new terminal:
-
-```bash
-export ANDROID_HOME="$HOME/Library/Android/sdk"
-export PATH="$PATH:$ANDROID_HOME/platform-tools"
-export PATH="$PATH:$ANDROID_HOME/emulator"
-export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin"
-
-export JAVA_HOME=$(/usr/libexec/java_home -v 17)
-export PATH="$JAVA_HOME/bin:$PATH"
-```
-
-`java -version` must say 17. Anything newer fails with
-"Unsupported class file major version".
-
-### Building
-
-For local development - arm64 only, four times faster:
-
-```bash
-npm run prebuild
-npm run android
-```
-
-For a release to share - all architectures, so it runs on any phone or emulator:
-
-```bash
-npm run prebuild
-cd android && ./gradlew assembleDebug && cd ..
-```
-
-First build takes 10-20 minutes because the AI engine compiles from source.
-
-### Publishing
-
-The APK lands at `android/app/build/outputs/apk/debug/app-debug.apk`. It cannot go in the repo -
-`android/` is gitignored and GitHub rejects files over 100MB.
-
-Publish under [Releases](https://github.com/thatdudetebo/ITMDA-Project/releases): Draft a new
-release → tag with the date, e.g. `apk-2026-10-14` → attach the APK → list the native
-dependency versions in the notes → publish. Tell the group so everyone reinstalls.
+This small model is for development. The real model
+(`Llama-3.2-1B-Instruct-Q4_K_M.gguf`, ~810 MB, from
+[bartowski/Llama-3.2-1B-Instruct-GGUF](https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF))
+is slower to load and only needed when measuring performance for Deliverable 5.
 
 <br>
 
 ---
 
-## Watch out for
+# If something breaks
 
-- **Expo Go will not work.** It only contains Expo's own modules and our AI engine isn't one of
-  them. Use the APK from Releases.
-- **The APK contains no app code.** It's a shell. Your TypeScript is served live from your own
-  machine by `npm start`, which is why five people can run five different branches through the
-  same installed app, and why you almost never need a new APK.
-- **Never edit `android/` by hand.** It is generated and gets wiped. Change `app.json` instead.
-- **Use `npm run android`, not `expo run:android`.** The script sets the CPU architecture;
-  without it the build takes four times longer and the app doubles in size.
-- **Speed and memory figures must come from a real phone.** Emulator numbers mean nothing for AI
-  performance and must not go into Deliverable 5.
+| Problem                                    | Fix                                                                     |
+| ------------------------------------------ | ----------------------------------------------------------------------- |
+| App won't connect to Metro                 | Same Wi-Fi? Otherwise `npm start -- --tunnel`.                          |
+| "Unable to resolve module ..."             | Someone added a package - `npm install`.                                |
+| App crashes immediately after `git pull`   | Native dependency changed - get the newest APK from Releases.           |
+| Pressing `a` says no device found          | Emulator not fully booted. Wait for the home screen, press `a` again.   |
+| Pressing `a` can't find `adb`              | Set `ANDROID_HOME` to your SDK path (`~/Library/Android/sdk` on macOS). |
+| `nvm use` says version not found           | `nvm install 22`.                                                       |
+| Changes don't appear in the app            | Shake the phone, or `Cmd+M` in the emulator → Reload.                   |
+| Anything AI-related says "model not found" | Import a model - see **The AI model** above.                            |
 
-### If something breaks
+**Install a new APK over the old one. Never uninstall.** Uninstalling deletes the app's
+private storage, which takes your imported model and your local database with it. Android
+allows installing over the top because every release is signed with the same key.
 
-| Problem                                | Fix                                                                           |
-| -------------------------------------- | ----------------------------------------------------------------------------- |
-| App won't connect to Metro             | Same Wi-Fi? Try `npm start -- --tunnel`.                                      |
-| "Unable to resolve module"             | Someone added a package - run `npm install`.                                  |
-| App crashes right after `git pull`     | A native dependency changed - get the new APK from Releases.                  |
-| "App not installed" when updating      | Uninstall the old StudyBee first, then install again.                         |
-| `nvm use` says version not found       | Run `nvm install 22` first.                                                   |
-| `Can't find service: activity`         | Emulator wasn't fully booted. Wait for the home screen, then press `a` again. |
-| `Unsupported class file major version` | Wrong JDK - must be 17. Only affects APK rebuilds.                            |
+## By The Way
+
+- **Expo Go will not work.** It contains only Expo's own native modules, and our AI engine
+  isn't one of them. Use the APK from Releases.
+- **The APK contains no app code.** It's a shell. Your TypeScript is served live from your
+  laptop by `npm start` — which is why five people can run five different branches through
+  the same installed app, and why a new APK is almost never needed.
+- **Never edit `android/` by hand.** It is generated from `app.json` and gets wiped.
+- **Performance figures must come from a real phone.** Emulator timings are meaningless for
+  on-device AI and must not go into Deliverable 5.
+
+Building and publishing the APK: see [`docs/BUILDING.md`](docs/BUILDING.md) - only for maintaining.
