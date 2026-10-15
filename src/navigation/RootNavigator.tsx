@@ -1,11 +1,12 @@
-import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
+import { NavigationContainer } from '@react-navigation/native';
 
-import HomeScreen from '../screens/HomeScreen';
-import SummaryScreen from '../screens/SummaryScreen';
+import InferenceDevScreen from '../dev/InferenceDevScreen';
 import FlashcardsScreen from '../screens/FlashcardsScreen';
+import HomeScreen from '../screens/HomeScreen';
 import QuestionsScreen from '../screens/QuestionsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import SummaryScreen from '../screens/SummaryScreen';
 
 export type RootDrawerParamList = {
   Home: undefined;
@@ -13,6 +14,7 @@ export type RootDrawerParamList = {
   Flashcards: { materialId?: number } | undefined;
   Questions: { materialId?: number } | undefined;
   Settings: undefined;
+  InferenceLab: undefined;
 };
 
 const Drawer = createDrawerNavigator<RootDrawerParamList>();
@@ -34,6 +36,11 @@ export default function RootNavigator() {
           options={{ title: 'Questions & answers' }}
         />
         <Drawer.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+        <Drawer.Screen
+          name="InferenceLab"
+          component={InferenceDevScreen}
+          options={{ title: 'Inference Lab' }}
+        />
       </Drawer.Navigator>
     </NavigationContainer>
   );
