@@ -100,6 +100,26 @@ function getResumeKey(modelId: ModelId): string {
   return `${DOWNLOAD_STATE_KEY}${modelId}`;
 }
 
+// Invalid or mismatched state is non-resumable; the caller handles cleanup.
+function parseResumeState(
+  storedState: string | null,
+  url: string,
+  fileUri: string,
+): DownloadPauseState | null {
+  if (!storedState) return null;
+
+  try {
+    const parsed: unknown = JSON.parse(storedState);
+    if (typeof parsed !== 'object' || parsed === null) return null;
+
+    const state = parsed as DownloadPauseState;
+    if (state.url !== url || state.fileUri !== fileUri) return null;
+    return state;
+  } catch {
+    return null;
+  }
+}
+
 /** Returns the supported Hugging Face GGUF files that can be downloaded in the app. */
 export function getAvailableModels(): ModelDefinition[] {
   return MODEL_CATALOG.map((model) => ({ ...model }));
@@ -204,25 +224,7 @@ export async function downloadModel(
   const partialPath = `${destination}.download`;
   const resumeKey = getResumeKey(modelId);
   const storedState = await AsyncStorage.getItem(resumeKey);
-  let resumeState: DownloadPauseState | null = null;
-
-  if (storedState) {
-    try {
-      const parsed: unknown = JSON.parse(storedState);
-      if (
-        typeof parsed === 'object' &&
-        parsed !== null &&
-        'url' in parsed &&
-        parsed.url === model.downloadUrl &&
-        'fileUri' in parsed &&
-        parsed.fileUri === partialPath
-      ) {
-        resumeState = parsed as DownloadPauseState;
-      }
-    } catch {
-      await AsyncStorage.removeItem(resumeKey);
-    }
-  }
+  const resumeState = parseResumeState(storedState, model.downloadUrl, partialPath);
 
   if (storedState && !resumeState) {
     await AsyncStorage.removeItem(resumeKey);
