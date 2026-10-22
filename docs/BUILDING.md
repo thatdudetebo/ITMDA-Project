@@ -14,7 +14,7 @@ Only when a **native dependency** changes - a package containing C++, Java or Ko
 has to be compiled into the APK. In practice that means:
 
 - adding, removing or upgrading a package with a native module
-  (`llama.rn`, `expo-sqlite`, `expo-file-system`, `react-native-reanimated`, …)
+  (`llama.rn`, `expo-sqlite`, `expo-file-system`, `expo-network`, `react-native-reanimated`, …)
 - changing anything in `app.json` that affects the native project - the package name, the
   permissions, the plugins array, the app icon
 - upgrading the Expo SDK or React Native
