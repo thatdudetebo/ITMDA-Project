@@ -12,7 +12,7 @@ ITMDA3-34 Group Project — Eduvos Pretoria.
 
 | Area             | Branch              | Owner                                            | Files                                                   |
 | ---------------- | ------------------- | ------------------------------------------------ | ------------------------------------------------------- |
-| Ingestion        | `feature/ingestion` | _TBC_                                            | `DocumentService`, `ChunkingService`                    |
+| Ingestion        | `feature/ingestion` | [@unanneR](https://github.com/unanneR)           | `DocumentService`, `ChunkingService`                    |
 | Retrieval        | `feature/retrieval` | _TBC_                                            | `EmbeddingService`, `RetrievalService`                  |
 | Inference        | `feature/inference` | [@SirMcKenzie](https://github.com/sirmckenzie)   | `PromptBuilder`, `GenerationService`, `InferenceRouter` |
 | UI               | `feature/ui`        | _TBC_                                            | 5 screens, `RootNavigator`                              |
