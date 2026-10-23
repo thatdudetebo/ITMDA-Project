@@ -12,6 +12,7 @@ import type {
 } from '../types/models';
 import { getDatabase } from './database';
 
+/** Fields needed after a document has been copied into app storage. */
 export type NewStudyMaterial = Pick<
   StudyMaterial,
   'UserID' | 'ModuleCode' | 'FileName' | 'FilePath'
@@ -25,10 +26,19 @@ export type NewMaterialChunk = Pick<
 export type NewFlashcard = Pick<Flashcard, 'DeckID' | 'Question' | 'Answer'>;
 
 /** Save this after generation succeeds; Prompt is the user's search text or question. */
+/**
+ * Data to save after a generation button succeeds.
+ * Summary results use { kind: 'text', text }; Q&A uses { kind: 'question-answer', items };
+ * flashcards use { kind: 'flashcards', deckName, cards }.
+ */
 export interface NewGenerationHistory {
+  /** ID of the selected StudyMaterial row. */
   MaterialID: number;
+  /** The screen action, used to label and filter history. */
   TaskType: GenerationHistoryTask;
+  /** User-entered topic or question to show when reopening the history item. */
   Prompt: string;
+  /** Generated content in the shape that matches TaskType. */
   Result: GenerationHistoryResult;
 }
 
@@ -37,8 +47,9 @@ export interface GenerationHistoryFilters {
   materialId?: number;
   /** Limit results to one task type; omit to show all generated content. */
   taskType?: GenerationHistoryTask;
-  /** Page size and offset for a scrollable history list. Defaults to 50 and 0. */
+  /** Number of rows to load per request. Defaults to 50. */
   limit?: number;
+  /** Number of rows to skip when loading the next page. Defaults to 0. */
   offset?: number;
 }
 
@@ -93,7 +104,7 @@ const GENERATION_HISTORY_SELECT = `
   FROM GenerationHistory h
   JOIN StudyMaterial m ON m.MaterialID = h.MaterialID`;
 
-/** Returns the app's local profile, creating it on first use. */
+/** Get the local profile ID before adding material; creates the profile on first use. */
 export async function getOrCreateUserProfile(): Promise<UserProfile> {
   const database = getDatabase();
   const existing = await database.getFirstAsync<UserProfile>(
@@ -110,6 +121,10 @@ export async function getOrCreateUserProfile(): Promise<UserProfile> {
   return created;
 }
 
+/**
+ * Save a picked/copied document so screens can refer to it by MaterialID.
+ * The returned row contains the ID to pass to summaries, decks, and history queries.
+ */
 export async function createStudyMaterial(input: NewStudyMaterial): Promise<StudyMaterial> {
   const database = getDatabase();
   const result = await database.runAsync(
@@ -135,7 +150,7 @@ export async function listStudyMaterials(userId: number): Promise<StudyMaterial[
   );
 }
 
-/** Deletes a material and its related chunks, summaries, decks, and cards. */
+/** Delete action for a material; SQLite also removes its chunks, summaries, decks, cards, and history. */
 export async function deleteStudyMaterial(materialId: number): Promise<void> {
   await getDatabase().runAsync('DELETE FROM StudyMaterial WHERE MaterialID = ?', materialId);
 }
@@ -175,7 +190,7 @@ export async function updateChunkEmbedding(chunkId: number, embedding: Uint8Arra
   );
 }
 
-/** Persists a generated summary and returns it with its database ID and timestamp. */
+/** Save a generated summary for the summary screen's saved-results list. */
 export async function createCramSummary(
   materialId: number,
   summaryText: string,
@@ -194,7 +209,7 @@ export async function createCramSummary(
   return summary;
 }
 
-/** Lists a material's summaries newest first. */
+/** Load saved summaries for the selected material, newest first. */
 export async function listCramSummaries(materialId: number): Promise<CramSummary[]> {
   return getDatabase().getAllAsync<CramSummary>(
     'SELECT * FROM CramSummary WHERE MaterialID = ? ORDER BY GeneratedDate DESC, SummaryID DESC',
@@ -203,8 +218,9 @@ export async function listCramSummaries(materialId: number): Promise<CramSummary
 }
 
 /**
- * Call after a Generate/Ask action succeeds so the History screen can list and reopen it.
- * Keep the existing summary/deck writes as needed; this stores the combined history payload.
+ * Call after generation succeeds so the History screen can list and reopen the result.
+ * Also call createCramSummary or createRevisionDeck/createFlashcards when those feature screens
+ * use their dedicated saved-result queries.
  */
 export async function createGenerationHistory(
   input: NewGenerationHistory,
@@ -223,8 +239,8 @@ export async function createGenerationHistory(
 }
 
 /**
- * Use to populate the History screen or filter it by material/task.
- * Each row includes its ID, task, prompt, source filename, and date; no result payload is loaded.
+ * Load rows for the History screen. Use filters for one material or task; each row has
+ * HistoryID, TaskType, Prompt, MaterialName, and GeneratedDate, but not the full result.
  */
 export async function listGenerationHistory(
   filters: GenerationHistoryFilters = {},
@@ -253,7 +269,7 @@ export async function listGenerationHistory(
   return rows;
 }
 
-/** Call from a history-row onPress handler to load the saved prompt and full result. */
+/** Call when a history row is tapped; returns its full result, or null if it was deleted. */
 export async function getGenerationHistoryItem(
   historyId: number,
 ): Promise<GenerationHistoryItem | null> {
@@ -264,7 +280,7 @@ export async function getGenerationHistoryItem(
   return row ? parseGenerationHistoryRow(row) : null;
 }
 
-/** Creates a flashcard deck for a material and returns the saved deck. */
+/** Create a deck first; pass its DeckID to createFlashcards to save the generated cards. */
 export async function createRevisionDeck(
   materialId: number,
   deckName: string,
@@ -283,7 +299,7 @@ export async function createRevisionDeck(
   return deck;
 }
 
-/** Lists a material's flashcard decks. */
+/** Load a material's decks for the flashcard list; newest deck IDs come first. */
 export async function listRevisionDecks(materialId: number): Promise<RevisionDeck[]> {
   return getDatabase().getAllAsync<RevisionDeck>(
     'SELECT * FROM RevisionDeck WHERE MaterialID = ? ORDER BY DeckID DESC',
@@ -291,7 +307,7 @@ export async function listRevisionDecks(materialId: number): Promise<RevisionDec
   );
 }
 
-/** Saves generated cards together; new cards start at the schema's default mastery level. */
+/** Save generated cards together; each card needs the selected deck's DeckID. */
 export async function createFlashcards(cards: NewFlashcard[]): Promise<void> {
   if (cards.length === 0) return;
 
@@ -308,7 +324,7 @@ export async function createFlashcards(cards: NewFlashcard[]): Promise<void> {
   });
 }
 
-/** Returns cards in stable order for the flashcard study view. */
+/** Load a deck's cards for the study view, in stable order. */
 export async function listFlashcards(deckId: number): Promise<Flashcard[]> {
   return getDatabase().getAllAsync<Flashcard>(
     'SELECT * FROM Flashcard WHERE DeckID = ? ORDER BY CardID',
@@ -316,7 +332,7 @@ export async function listFlashcards(deckId: number): Promise<Flashcard[]> {
   );
 }
 
-/** Saves the mastery value selected by the flashcard review interaction. */
+/** Call after a learner chooses a mastery option for a card. */
 export async function updateFlashcardMastery(cardId: number, masteryLevel: number): Promise<void> {
   await getDatabase().runAsync(
     'UPDATE Flashcard SET MasteryLevel = ? WHERE CardID = ?',
