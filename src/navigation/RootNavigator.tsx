@@ -1,6 +1,5 @@
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { NavigationContainer } from '@react-navigation/native';
-/*import { StyleSheet } from 'react-native'; check*/
 
 import FlashcardsScreen from '../screens/FlashcardsScreen';
 import HistoryScreen from '../screens/HistoryScreen';
@@ -42,8 +41,3 @@ export default function RootNavigator() {
     </NavigationContainer>
   );
 }
-
-/*const styles = StyleSheet.create({
-  background: {backgroundColor: '#1E1F24'},
-  color: {color: '#F4EFC8' },
-})check*/

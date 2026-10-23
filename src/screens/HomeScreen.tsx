@@ -1,16 +1,17 @@
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { RootDrawerParamList } from '../navigation/RootNavigator';
 
+
 export default function HomeScreen() {
-  const navigation = useNavigation<RootDrawerParamList>();
-  const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentResult | null>(null);
+  const navigation = useNavigation<NavigationProp<RootDrawerParamList>>();
+  const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const handleDocumentSelection = async () => {
     const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf' }); 
     if (!result.canceled) {
-      setSelectedFile(result);
+      setSelectedFile(result.assets[0]);
     }
   };
 
@@ -59,7 +60,7 @@ const styles = StyleSheet.create({
     alignItems:'center',
     justifyContent:'space-evenly',
     backgroundColor:'#2B2D34',
-    marginTop:'20',
+    marginTop:20,
     marginLeft:'11%',
   },
   flashcards:{
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
     alignItems:'center',
     justifyContent:'space-evenly',
     backgroundColor:'#2B2D34',
-    marginTop:'20',
+    marginTop:20,
     marginLeft:'11%',
   },
   summary:{
@@ -84,7 +85,7 @@ const styles = StyleSheet.create({
     alignItems:'center',
     justifyContent:'space-evenly',
     backgroundColor:'#a06f04',
-    marginTop:'40',
+    marginTop:40,
     marginLeft:'11%',
   },
   container:{
@@ -99,14 +100,14 @@ const styles = StyleSheet.create({
     borderColor: '#FFB100',
     alignItems: 'center',
     justifyContent: 'space-evenly',
-    marginTop: '40',
+    marginTop: 40,
     marginLeft: '11%',
-    padding: '15',
+    padding: 15,
     backgroundColor: '#2B2D34',
     color: '#F4EFC8',
   },
 
-  title: { fontSize: 28, fontWeight: '500', color: '#F4EFC8', textAlign: 'center', marginTop: '20' },
+  title: { fontSize: 28, fontWeight: '500', color: '#F4EFC8', textAlign: 'center', marginTop: 20 },
   subtitle: { fontSize: 14, opacity: 0.6, marginTop: 8, textAlign: 'center', color: '#F4EFC8' },
   background: { backgroundColor: '#1E1F24' },
   color: { color: '#F4EFC8'},

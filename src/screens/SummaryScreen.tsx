@@ -28,12 +28,12 @@ const styles = StyleSheet.create({
   },
   summaryText:{
     color:'#F4EFC8',
-    fontsize:16,
+    fontSize:16,
     lineHeight:24,
   },
   background: { backgroundColor: '#1E1F24' },
   container: { flex: 1, alignItems: 'center', padding: 24, backgroundColor:'#1E1F24', color:'#F4EFC8' },
-  title: { fontSize: 28, fontWeight: '500', color:'#F4EFC8', marginTop:'10'},
+  title: { fontSize: 28, fontWeight: '500', color:'#F4EFC8', marginTop:10},
   subtitle: { fontSize: 14, opacity: 0.6, marginTop: 8, textAlign: 'center', color: '#F4EFC8'},
   
 });
