@@ -2,7 +2,7 @@
 // Vectors live in MaterialChunk.VectorEmbedding as BLOBs, which is what
 // removes the need for a separate vector database.
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const CREATE_TABLES = `
 PRAGMA journal_mode = WAL;
@@ -57,8 +57,19 @@ CREATE TABLE IF NOT EXISTS Flashcard (
   FOREIGN KEY (DeckID) REFERENCES RevisionDeck(DeckID) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS GenerationHistory (
+  HistoryID    INTEGER PRIMARY KEY AUTOINCREMENT,
+  MaterialID   INTEGER NOT NULL,
+  TaskType     TEXT NOT NULL CHECK (TaskType IN ('summary', 'questions', 'flashcards', 'freeform')),
+  Prompt       TEXT NOT NULL,
+  ResultJson   TEXT NOT NULL,
+  GeneratedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (MaterialID) REFERENCES StudyMaterial(MaterialID) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_chunk_material ON MaterialChunk(MaterialID, ChunkIndex);
 CREATE INDEX IF NOT EXISTS idx_summary_material ON CramSummary(MaterialID);
 CREATE INDEX IF NOT EXISTS idx_deck_material ON RevisionDeck(MaterialID);
 CREATE INDEX IF NOT EXISTS idx_card_deck ON Flashcard(DeckID);
+CREATE INDEX IF NOT EXISTS idx_history_material_date ON GenerationHistory(MaterialID, GeneratedDate DESC, HistoryID DESC);
 `;

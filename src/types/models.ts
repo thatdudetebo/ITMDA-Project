@@ -46,6 +46,30 @@ export interface Flashcard {
   MasteryLevel: number;
 }
 
+export type GenerationHistoryTask = 'summary' | 'questions' | 'flashcards' | 'freeform';
+
+export type GenerationHistoryResult =
+  | { kind: 'text'; text: string }
+  | { kind: 'question-answer'; items: Array<{ question: string; answer: string }> }
+  | {
+      kind: 'flashcards';
+      deckName: string;
+      cards: Array<{ question: string; answer: string }>;
+    };
+
+export interface GenerationHistoryPreview {
+  HistoryID: number;
+  MaterialID: number;
+  MaterialName: string;
+  TaskType: GenerationHistoryTask;
+  Prompt: string;
+  GeneratedDate: string;
+}
+
+export interface GenerationHistoryItem extends GenerationHistoryPreview {
+  Result: GenerationHistoryResult;
+}
+
 /** A chunk returned by retrieval, with its similarity score. */
 export interface RetrievedChunk extends MaterialChunk {
   similarity: number;

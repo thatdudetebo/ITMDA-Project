@@ -1,6 +1,10 @@
 import type {
   CramSummary,
   Flashcard,
+  GenerationHistoryItem,
+  GenerationHistoryPreview,
+  GenerationHistoryResult,
+  GenerationHistoryTask,
   MaterialChunk,
   RevisionDeck,
   StudyMaterial,
@@ -19,6 +23,75 @@ export type NewMaterialChunk = Pick<
 > & { VectorEmbedding?: Uint8Array | null };
 
 export type NewFlashcard = Pick<Flashcard, 'DeckID' | 'Question' | 'Answer'>;
+
+/** Save this after generation succeeds; Prompt is the user's search text or question. */
+export interface NewGenerationHistory {
+  MaterialID: number;
+  TaskType: GenerationHistoryTask;
+  Prompt: string;
+  Result: GenerationHistoryResult;
+}
+
+export interface GenerationHistoryFilters {
+  /** Limit results to one source document; omit to show all materials. */
+  materialId?: number;
+  /** Limit results to one task type; omit to show all generated content. */
+  taskType?: GenerationHistoryTask;
+  /** Page size and offset for a scrollable history list. Defaults to 50 and 0. */
+  limit?: number;
+  offset?: number;
+}
+
+interface GenerationHistoryRow extends GenerationHistoryPreview {
+  ResultJson: string;
+}
+
+function isGenerationHistoryResult(value: unknown): value is GenerationHistoryResult {
+  if (typeof value !== 'object' || value === null) return false;
+
+  const result = value as Record<string, unknown>;
+  if (result.kind === 'text') return typeof result.text === 'string';
+  if (result.kind !== 'question-answer' && result.kind !== 'flashcards') return false;
+
+  const items = result.kind === 'flashcards' ? result.cards : result.items;
+  if (!Array.isArray(items)) return false;
+  if (result.kind === 'flashcards' && typeof result.deckName !== 'string') return false;
+
+  return items.every(
+    (item) =>
+      typeof item === 'object' &&
+      item !== null &&
+      typeof (item as Record<string, unknown>).question === 'string' &&
+      typeof (item as Record<string, unknown>).answer === 'string',
+  );
+}
+
+function parseGenerationHistoryRow(row: GenerationHistoryRow): GenerationHistoryItem {
+  let result: unknown;
+  try {
+    result = JSON.parse(row.ResultJson);
+  } catch {
+    throw new Error(`Generation history item ${row.HistoryID} contains invalid result data.`);
+  }
+  if (!isGenerationHistoryResult(result)) {
+    throw new Error(`Generation history item ${row.HistoryID} has an unsupported result format.`);
+  }
+
+  const { ResultJson: _resultJson, ...preview } = row;
+  return { ...preview, Result: result };
+}
+
+const GENERATION_HISTORY_PREVIEW_SELECT = `
+  SELECT h.HistoryID, h.MaterialID, m.FileName AS MaterialName,
+    h.TaskType, h.Prompt, h.GeneratedDate
+  FROM GenerationHistory h
+  JOIN StudyMaterial m ON m.MaterialID = h.MaterialID`;
+
+const GENERATION_HISTORY_SELECT = `
+  SELECT h.HistoryID, h.MaterialID, m.FileName AS MaterialName,
+         h.TaskType, h.Prompt, h.ResultJson, h.GeneratedDate
+  FROM GenerationHistory h
+  JOIN StudyMaterial m ON m.MaterialID = h.MaterialID`;
 
 /** Returns the app's local profile, creating it on first use. */
 export async function getOrCreateUserProfile(): Promise<UserProfile> {
@@ -127,6 +200,68 @@ export async function listCramSummaries(materialId: number): Promise<CramSummary
     'SELECT * FROM CramSummary WHERE MaterialID = ? ORDER BY GeneratedDate DESC, SummaryID DESC',
     materialId,
   );
+}
+
+/**
+ * Call after a Generate/Ask action succeeds so the History screen can list and reopen it.
+ * Keep the existing summary/deck writes as needed; this stores the combined history payload.
+ */
+export async function createGenerationHistory(
+  input: NewGenerationHistory,
+): Promise<GenerationHistoryItem> {
+  const database = getDatabase();
+  const result = await database.runAsync(
+    'INSERT INTO GenerationHistory (MaterialID, TaskType, Prompt, ResultJson) VALUES (?, ?, ?, ?)',
+    input.MaterialID,
+    input.TaskType,
+    input.Prompt,
+    JSON.stringify(input.Result),
+  );
+  const item = await getGenerationHistoryItem(result.lastInsertRowId);
+  if (!item) throw new Error('Could not create the generation history record.');
+  return item;
+}
+
+/**
+ * Use to populate the History screen or filter it by material/task.
+ * Each row includes its ID, task, prompt, source filename, and date; no result payload is loaded.
+ */
+export async function listGenerationHistory(
+  filters: GenerationHistoryFilters = {},
+): Promise<GenerationHistoryPreview[]> {
+  const conditions: string[] = [];
+  const parameters: (number | string)[] = [];
+  if (filters.materialId !== undefined) {
+    conditions.push('h.MaterialID = ?');
+    parameters.push(filters.materialId);
+  }
+  if (filters.taskType !== undefined) {
+    conditions.push('h.TaskType = ?');
+    parameters.push(filters.taskType);
+  }
+
+  const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
+  const limit = Math.max(1, Math.floor(filters.limit ?? 50));
+  const offset = Math.max(0, Math.floor(filters.offset ?? 0));
+  const rows = await getDatabase().getAllAsync<GenerationHistoryPreview>(
+    `${GENERATION_HISTORY_PREVIEW_SELECT}${whereClause}
+     ORDER BY h.GeneratedDate DESC, h.HistoryID DESC LIMIT ? OFFSET ?`,
+    ...parameters,
+    limit,
+    offset,
+  );
+  return rows;
+}
+
+/** Call from a history-row onPress handler to load the saved prompt and full result. */
+export async function getGenerationHistoryItem(
+  historyId: number,
+): Promise<GenerationHistoryItem | null> {
+  const row = await getDatabase().getFirstAsync<GenerationHistoryRow>(
+    `${GENERATION_HISTORY_SELECT} WHERE h.HistoryID = ?`,
+    historyId,
+  );
+  return row ? parseGenerationHistoryRow(row) : null;
 }
 
 /** Creates a flashcard deck for a material and returns the saved deck. */
