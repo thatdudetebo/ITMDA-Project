@@ -24,7 +24,7 @@ export default function SettingsScreen() {
             <Text style={styles.modeTitle}>Enhanced Mode</Text>
             <Text style={styles.description}>Allow internet-based features</Text>
           </View>
-          <Switch value={enhancedMode} onValueChange={setEnhancedMode} trackColor={{false:'#45464D',true:'#F4EFC8'}} thumbColor={enhancedMode?'#BDBDBD': '#1E1F24'}/>
+          <Switch value={enhancedMode} onValueChange={setEnhancedMode} trackColor={{false:'#45464D',true:'#F4EFC8'}} thumbColor={enhancedMode?'#BDBDBD': '#515259'}/>
         </View>
         <Text style={styles.status}>EnhancedMode is {enhancedMode ? 'Enabled' : 'Disabled'}</Text>
       </ScrollView>

@@ -1,7 +1,7 @@
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { RootDrawerParamList } from '../navigation/RootNavigator';
 
 
@@ -17,7 +17,9 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-    <Text style= {styles.title}>My Library</Text>
+      <Image source={require('../../assets/StudyBee2.png')} style={styles.logo} resizeMode="contain" />
+    
+    
 
     <View style={styles.uploadBox}>
       <Pressable onPress={handleDocumentSelection}>
@@ -46,11 +48,16 @@ export default function HomeScreen() {
       </Pressable>
     </View>
     </View>
-
   );
 }
 
 const styles = StyleSheet.create({
+  logo:{
+    width:100,
+    height:90,
+    alignSelf:'center',
+  
+  },
   qa:{
     width:'80%',
     height:80,
@@ -81,7 +88,6 @@ const styles = StyleSheet.create({
     borderRadius:10,
     borderWidth:1,
     borderColor:'#FFB100',
-    borderColor:'#',
     alignItems:'center',
     justifyContent:'space-evenly',
     backgroundColor:'#a06f04',
