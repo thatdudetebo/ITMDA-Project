@@ -6,6 +6,10 @@ internet and no subscription.
 
 ITMDA3-34 Group Project - Eduvos Pretoria.
 
+Demo Video link 1
+https://youtu.be/Lof2gh-dzuU
+Demo Video link 2
+https://youtube.com/shorts/cfipVW8tSOQ?feature=share
 ---
 
 ## Collaborators
