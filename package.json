@@ -35,7 +35,8 @@
     "prebuild": "expo prebuild --platform android --clean",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test": "node tests/run.js"
   },
   "private": true
 }
