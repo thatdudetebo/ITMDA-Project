@@ -25,13 +25,6 @@ export interface MaterialChunk {
   VectorEmbedding: Uint8Array | null;
 }
 
-export interface CramSummary {
-  SummaryID: number;
-  MaterialID: number;
-  SummaryText: string;
-  GeneratedDate: string;
-}
-
 export interface RevisionDeck {
   DeckID: number;
   MaterialID: number;

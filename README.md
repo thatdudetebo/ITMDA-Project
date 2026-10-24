@@ -4,27 +4,69 @@ Offline AI study assistant for Android. Runs a small AI model directly on the ph
 students can turn their own notes and PDFs into summaries, flashcards and Q&A with no
 internet and no subscription.
 
-ITMDA3-34 Group Project — Eduvos Pretoria.
+ITMDA3-34 Group Project - Eduvos Pretoria.
 
 ---
 
 ## Collaborators
 
-| Area             | Branch              | Owner                                            | Files                                                   |
-| ---------------- | ------------------- | ------------------------------------------------ | ------------------------------------------------------- |
-| Ingestion        | `feature/ingestion` | _TBC_                                            | `DocumentService`, `ChunkingService`                    |
-| Retrieval        | `feature/retrieval` | _TBC_                                            | `EmbeddingService`, `RetrievalService`                  |
-| Inference        | `feature/inference` | [@SirMcKenzie](https://github.com/sirmckenzie)   | `PromptBuilder`, `GenerationService`, `InferenceRouter` |
-| UI               | `feature/ui`        | _TBC_                                            | 5 screens, `RootNavigator`                              |
-| Storage & models | `feature/storage`   | [@thatdudetebo](https://github.com/thatdudetebo) | `ModelManager`, `PreferencesService`, database queries  |
+| Area                               | Owner                                            | Files                                                                                                                                                                       |
+| ---------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Inference, ingestion and retrieval | [@SirMcKenzie](https://github.com/sirmckenzie)   | `PromptBuilder`, `GenerationService`, `InferenceRouter`, `GenerationPipeline`, `OutputParser`, `DocumentService`, `ChunkingService`, `EmbeddingService`, `RetrievalService` |
+| Screens and navigation (wiring)    | [@SirMcKenzie](https://github.com/sirmckenzie)   | `src/screens`, `src/hooks`, `src/state`, `src/components`, `RootNavigator`                                                                                                  |
+| Storage & models                   | [@thatdudetebo](https://github.com/thatdudetebo) | `ModelManager`, `PreferencesService`, database schema and queries                                                                                                           |
+| UI design                          | [@leago9](https://github.com/leago9)             | Logo, screen mock-ups, profile and Enhanced Mode layout                                                                                                                     |
 
 ### Working agreements
 
-- Work on your own `feature/*` branch, never on `main`.
+- Work on a `feature/*` branch, never on `main`.
 - Pull `main` into your branch often so you don't drift.
-- Run `npm run format` and `npm run typecheck` before every commit.
+- Run `npm run format`, `npm run typecheck` and `npm test` before every commit.
 - Added a package? Tell the group as everyone needs to run `npm install` after pulling.
 - Open a pull request into `main` when something works. One other person reviews it.
+- Commit messages follow Conventional Commits, for example `feat(retrieval): add cosine search`.
+
+## What the app does
+
+1. **Upload** a PDF of your notes (it must have selectable text, scanned pages are not supported) and give it a title.
+2. **Generate** a summary, flashcards, or exam-style questions with answers from that material, or **ask your own question** about it. Everything runs on the phone.
+3. **Study** the flashcards: tap to flip, then mark "Again" or "Got it".
+4. **Come back later**: every result is saved, and **History** reopens any of them.
+
+## How the code is organised
+
+```
+src/
+  config.ts          fixed values from Deliverable 3 (chunk size, token budget, model names)
+  db/                SQLite schema and queries
+  services/
+    DocumentService, ChunkingService        PDF -> text -> chunks
+    EmbeddingService, RetrievalService      chunks -> vectors -> the most relevant chunks
+    PromptBuilder, GenerationService,
+      InferenceRouter, OutputParser         prompt -> local model -> text -> flashcards / Q&A
+    GenerationPipeline                      the one function the screens call to generate
+    ModelManager, PreferencesService        model files and settings
+  state/ hooks/ components/ screens/        what the user sees
+tests/                                      isolated tests (run with npm test, no phone needed)
+docs/                                       build guide, test log, phone test checklist, Deliverable 4 checklist
+```
+
+A generation goes: screen -> `GenerationPipeline` -> pick chunks (search for questions, a spread across the document for everything else) -> `PromptBuilder` -> the model -> `OutputParser` -> saved to SQLite -> rendered.
+
+## Changelog
+
+Changes made after the Deliverable 3 design (the ERD, wireframes and architecture in that document describe the original plan).
+
+### 24 Oct 2026
+
+- **Removed** the `CramSummary` table, its queries and its type. Summaries are stored in `GenerationHistory` with every other generated result, so the table was redundant. Phones that ran an older build drop the (empty) table automatically on the next start.
+- **Added** the `GenerationHistory` table and the History screen. Every summary, flashcard set, Q&A set and free-form answer is saved and can be reopened or deleted.
+- **Changed** where the user's title for a material is stored: it uses the existing `StudyMaterial.ModuleCode` column, so no schema change was needed.
+- **Added** a profile (name and email, validated) to Settings, stored in `UserProfile`.
+- **Added** model management to Settings: download with Wi-Fi-only control, pause and resume, import from a file, delete. Models are stored in the app's `files/models/` folder.
+- **Added** rename and delete for materials, and delete for decks and history rows, so each of those modules supports create, read, update and delete.
+- **Changed** how the model answers are read: flashcards and Q&A are requested as `Q:` / `A:` pairs and parsed into cards.
+- **Changed** to a drawer menu with six screens, and a dark theme.
 
 <br>
 
@@ -147,6 +189,7 @@ Before you commit:
 ```bash
 npm run format
 npm run typecheck
+npm test
 ```
 
 Push your branch and open a pull request into `main` when a piece of work is finished.
@@ -157,19 +200,27 @@ Push your branch and open a pull request into `main` when a piece of work is fin
 
 # The AI model
 
-The app ships without a model. The file is 100 MB to 1 GB and cannot live in a git repo.
-Nothing that calls the AI will work until a model is on your device.
+The app ships without a model. The files are 35 MB to 1 GB and cannot live in a git repo.
+Nothing that calls the AI will work until a model is on your device. Open **Settings -> AI Models**.
+There are two ways to install one:
 
-Download **`SmolLM2-135M-Instruct-Q4_K_M.gguf`** (~100 MB) from
-[bartowski/SmolLM2-135M-Instruct-GGUF](https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF) then open "Files and versions" and click the download arrow on that row. _No account needed_.
+- **Download** in the app (use Wi-Fi: **Download on Wi-Fi only** is on by default), or
+- **Import model (.gguf)**: download the file on your computer or phone first, then pick it with the file picker. The app copies it into its own storage (`files/models/`).
 
-Then import it in the app: **Settings → Import model**, and pick the file you downloaded.
-The app copies it into its own storage. Do this once per device.
+| Model                                            | File                                | Size    | Used for                                                                      |
+| ------------------------------------------------ | ----------------------------------- | ------- | ----------------------------------------------------------------------------- |
+| SmolLM2 135M (development)                       | `SmolLM2-135M-Instruct-Q4_K_M.gguf` | ~100 MB | Quick testing. It often ignores the flashcard format, so use Llama for demos. |
+| Llama 3.2 1B Instruct (**the real model**)       | `Llama-3.2-1B-Instruct-Q4_K_M.gguf` | ~770 MB | Summaries, flashcards, Q&A and answers. Slower to load.                       |
+| BGE Small English v1.5 (search, **recommended**) | `bge-small-en-v1.5-q8_0.gguf`       | ~35 MB  | Finds the right part of your notes for your own questions.                    |
 
-This small model is for development. The real model
-(`Llama-3.2-1B-Instruct-Q4_K_M.gguf`, ~810 MB, from
-[bartowski/Llama-3.2-1B-Instruct-GGUF](https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF))
-is slower to load and only needed when measuring performance for Deliverable 5.
+Files: [SmolLM2](https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF) and
+[Llama](https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF) (bartowski),
+[BGE](https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf) (CompendiumLabs). Open "Files and versions"
+and click the download arrow on the row. _No account needed_. The file name must match exactly.
+
+Without the search model the app still works: your own questions are answered from a sample of
+the notes instead of the most relevant parts, and Questions shows a hint. Performance figures
+for Deliverable 5 need the Llama model on a real phone.
 
 <br>
 
@@ -177,16 +228,19 @@ is slower to load and only needed when measuring performance for Deliverable 5.
 
 # If something breaks
 
-| Problem                                    | Fix                                                                     |
-| ------------------------------------------ | ----------------------------------------------------------------------- |
-| App won't connect to Metro                 | Same Wi-Fi? Otherwise `npm start -- --tunnel`.                          |
-| "Unable to resolve module ..."             | Someone added a package - `npm install`.                                |
-| App crashes immediately after `git pull`   | Native dependency changed - get the newest APK from Releases.           |
-| Pressing `a` says no device found          | Emulator not fully booted. Wait for the home screen, press `a` again.   |
-| Pressing `a` can't find `adb`              | Set `ANDROID_HOME` to your SDK path (`~/Library/Android/sdk` on macOS). |
-| `nvm use` says version not found           | `nvm install 22`.                                                       |
-| Changes don't appear in the app            | Shake the phone, or `Cmd+M` in the emulator → Reload.                   |
-| Anything AI-related says "model not found" | Import a model - see **The AI model** above.                            |
+| Problem                                    | Fix                                                                                |
+| ------------------------------------------ | ---------------------------------------------------------------------------------- |
+| App won't connect to Metro                 | Same Wi-Fi? Otherwise `npm start -- --tunnel`.                                     |
+| "Unable to resolve module ..."             | Someone added a package - `npm install`.                                           |
+| App crashes immediately after `git pull`   | Native dependency changed - get the newest APK from Releases.                      |
+| Pressing `a` says no device found          | Emulator not fully booted. Wait for the home screen, press `a` again.              |
+| Pressing `a` can't find `adb`              | Set `ANDROID_HOME` to your SDK path (`~/Library/Android/sdk` on macOS).            |
+| `nvm use` says version not found           | `nvm install 22`.                                                                  |
+| Changes don't appear in the app            | Shake the phone, or `Cmd+M` in the emulator → Reload.                              |
+| Anything AI-related says "model not found" | Install a model in Settings - see **The AI model** above.                          |
+| Download says "Connect to Wi-Fi"           | You are not on Wi-Fi. Connect, or turn off **Download on Wi-Fi only** in Settings. |
+| "This PDF has no selectable text"          | The PDF is a scan. Use a PDF where you can select the text.                        |
+| Flashcards say "Couldn't read the answer"  | The small model ignored the format. Try again, or use the Llama model.             |
 
 **Install a new APK over the old one. Never uninstall.** Uninstalling deletes the app's
 private storage, which takes your imported model and your local database with it. Android
@@ -197,7 +251,7 @@ allows installing over the top because every release is signed with the same key
 - **Expo Go will not work.** It contains only Expo's own native modules, and our AI engine
   isn't one of them. Use the APK from Releases.
 - **The APK contains no app code.** It's a shell. Your TypeScript is served live from your
-  laptop by `npm start` — which is why five people can run five different branches through
+  laptop by `npm start` - which is why everyone can run a different branch through
   the same installed app, and why a new APK is almost never needed.
 - **Never edit `android/` by hand.** It is generated from `app.json` and gets wiped.
 - **Performance figures must come from a real phone.** Emulator timings are meaningless for

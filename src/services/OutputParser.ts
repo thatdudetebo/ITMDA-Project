@@ -1,5 +1,6 @@
 // Turns the model's free text into structured question/answer pairs.
 // Pure functions with no React Native imports, so they can be tested off-device.
+// Deliverable 3 reference: section 6.2, inference layer
 
 export interface QAPair {
   question: string;

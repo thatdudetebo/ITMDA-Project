@@ -42,3 +42,8 @@ yarn-error.*
 
 # AI assistant local config
 .claude/
+
+# Enhanced Mode backend (secrets and local tooling)
+backend/.dev.vars
+backend/node_modules/
+backend/.wrangler/

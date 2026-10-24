@@ -166,33 +166,53 @@ a `versionCode`, only ever increase it - Android refuses downgrades.
 
 ## Pushing a model with adb
 
-The README tells collaborators to import a model through the app, because app-private
-storage is unreachable without `adb` or root and most of them have neither.
+The README tells collaborators to install a model through the app (Settings, AI Models), because
+app-private storage is unreachable without `adb` or root and most of them have neither.
 
-You have adb, so you can skip the UI:
+You have adb, so you can skip the UI. Models live in the app's `files/models/` folder (the app
+creates it when you install through Settings, but it may not exist yet, so create it first):
 
 ```bash
-adb push ~/Downloads/SmolLM2-135M-Instruct-Q4_K_M.gguf /data/local/tmp/
+adb push ~/Downloads/Llama-3.2-1B-Instruct-Q4_K_M.gguf /data/local/tmp/
+
+adb shell run-as za.ac.eduvos.studybee mkdir -p files/models
 
 adb shell run-as za.ac.eduvos.studybee \
-  cp /data/local/tmp/SmolLM2-135M-Instruct-Q4_K_M.gguf files/
+  cp /data/local/tmp/Llama-3.2-1B-Instruct-Q4_K_M.gguf files/models/
 
-adb shell rm /data/local/tmp/SmolLM2-135M-Instruct-Q4_K_M.gguf
+adb shell rm /data/local/tmp/Llama-3.2-1B-Instruct-Q4_K_M.gguf
 
-adb shell run-as za.ac.eduvos.studybee ls -lh files/
+adb shell run-as za.ac.eduvos.studybee ls -lh files/models
 ```
 
-`run-as` switches to the app's UID, which is the only reason the copy into `files/` is
-permitted - and it works only on debug builds. The staging hop through
-`/data/local/tmp/` is necessary because `adb push` itself cannot write into app-private
-storage.
+Do the same for `bge-small-en-v1.5-q8_0.gguf` (the search model) and, for quick tests,
+`SmolLM2-135M-Instruct-Q4_K_M.gguf`. The file names must match exactly.
 
-`files/` in the copy is relative: `run-as` starts in
-`/data/data/za.ac.eduvos.studybee/`, the same directory the app sees as
-`/data/user/0/za.ac.eduvos.studybee/files/`.
+`run-as` switches to the app's UID, which is the only reason the copy is permitted - and it works
+only on debug builds. The staging hop through `/data/local/tmp/` is necessary because `adb push`
+itself cannot write into app-private storage. When a command contains a shell glob or `&&`, wrap
+it as `adb shell "run-as za.ac.eduvos.studybee sh -c '...'"`, otherwise the glob is expanded
+before `run-as` and matches nothing.
 
-The model survives reboots and APK updates. It does not survive uninstalling the app or
-wiping the AVD.
+`files/` in the copy is relative: `run-as` starts in `/data/data/za.ac.eduvos.studybee/`, the same
+directory the app sees as `/data/user/0/za.ac.eduvos.studybee/files/`.
+
+Models survive reboots and APK updates. They do not survive uninstalling the app or wiping the AVD.
+
+### Looking at the app's files and database
+
+```bash
+adb shell "run-as za.ac.eduvos.studybee sh -c 'ls -l files/models files/materials files/SQLite'"
+
+# copy the database out (into a fresh folder, so an old -wal file can never be mixed in)
+D=$(mktemp -d)
+for f in studybee.db studybee.db-wal studybee.db-shm; do
+  adb exec-out "run-as za.ac.eduvos.studybee cat files/SQLite/$f" > "$D/$f"
+done
+sqlite3 "$D/studybee.db" "select TaskType, count(*) from GenerationHistory group by 1"
+```
+
+Copy all three database files together (the `-wal` file holds recent writes).
 
 ---
 

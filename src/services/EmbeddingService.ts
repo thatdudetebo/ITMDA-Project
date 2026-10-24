@@ -154,8 +154,3 @@ export async function embedPendingChunks(
   }
   return { chunks, embedded };
 }
-
-/** Embeds every chunk of a material and writes the vectors back to the database. */
-export function embedMaterial(materialId: number): Promise<number> {
-  return withEmbeddingModel(async () => (await embedPendingChunks(materialId)).embedded);
-}
