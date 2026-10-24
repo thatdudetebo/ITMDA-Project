@@ -46,6 +46,34 @@ export interface Flashcard {
   MasteryLevel: number;
 }
 
+/** History category used by Generate Summary, Ask Questions, and Generate Flashcards actions. */
+export type GenerationHistoryTask = 'summary' | 'questions' | 'flashcards' | 'freeform';
+
+/** Result payloads accepted by createGenerationHistory and returned when opening an item. */
+export type GenerationHistoryResult =
+  | { kind: 'text'; text: string }
+  | { kind: 'question-answer'; items: Array<{ question: string; answer: string }> }
+  | {
+      kind: 'flashcards';
+      deckName: string;
+      cards: Array<{ question: string; answer: string }>;
+    };
+
+/** Lightweight fields shown in a history row before its saved result is loaded. */
+export interface GenerationHistoryPreview {
+  HistoryID: number;
+  MaterialID: number;
+  MaterialName: string;
+  TaskType: GenerationHistoryTask;
+  Prompt: string;
+  GeneratedDate: string;
+}
+
+/** Full history row returned when a user opens an entry. */
+export interface GenerationHistoryItem extends GenerationHistoryPreview {
+  Result: GenerationHistoryResult;
+}
+
 /** A chunk returned by retrieval, with its similarity score. */
 export interface RetrievedChunk extends MaterialChunk {
   similarity: number;

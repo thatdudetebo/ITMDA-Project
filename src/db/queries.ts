@@ -1,6 +1,10 @@
 import type {
   CramSummary,
   Flashcard,
+  GenerationHistoryItem,
+  GenerationHistoryPreview,
+  GenerationHistoryResult,
+  GenerationHistoryTask,
   MaterialChunk,
   RevisionDeck,
   StudyMaterial,
@@ -8,6 +12,7 @@ import type {
 } from '../types/models';
 import { getDatabase } from './database';
 
+/** Fields needed after a document has been copied into app storage. */
 export type NewStudyMaterial = Pick<
   StudyMaterial,
   'UserID' | 'ModuleCode' | 'FileName' | 'FilePath'
@@ -20,7 +25,86 @@ export type NewMaterialChunk = Pick<
 
 export type NewFlashcard = Pick<Flashcard, 'DeckID' | 'Question' | 'Answer'>;
 
-/** Returns the app's local profile, creating it on first use. */
+/** Save this after generation succeeds; Prompt is the user's search text or question. */
+/**
+ * Data to save after a generation button succeeds.
+ * Summary results use { kind: 'text', text }; Q&A uses { kind: 'question-answer', items };
+ * flashcards use { kind: 'flashcards', deckName, cards }.
+ */
+export interface NewGenerationHistory {
+  /** ID of the selected StudyMaterial row. */
+  MaterialID: number;
+  /** The screen action, used to label and filter history. */
+  TaskType: GenerationHistoryTask;
+  /** User-entered topic or question to show when reopening the history item. */
+  Prompt: string;
+  /** Generated content in the shape that matches TaskType. */
+  Result: GenerationHistoryResult;
+}
+
+export interface GenerationHistoryFilters {
+  /** Limit results to one source document; omit to show all materials. */
+  materialId?: number;
+  /** Limit results to one task type; omit to show all generated content. */
+  taskType?: GenerationHistoryTask;
+  /** Number of rows to load per request. Defaults to 50. */
+  limit?: number;
+  /** Number of rows to skip when loading the next page. Defaults to 0. */
+  offset?: number;
+}
+
+interface GenerationHistoryRow extends GenerationHistoryPreview {
+  ResultJson: string;
+}
+
+function isGenerationHistoryResult(value: unknown): value is GenerationHistoryResult {
+  if (typeof value !== 'object' || value === null) return false;
+
+  const result = value as Record<string, unknown>;
+  if (result.kind === 'text') return typeof result.text === 'string';
+  if (result.kind !== 'question-answer' && result.kind !== 'flashcards') return false;
+
+  const items = result.kind === 'flashcards' ? result.cards : result.items;
+  if (!Array.isArray(items)) return false;
+  if (result.kind === 'flashcards' && typeof result.deckName !== 'string') return false;
+
+  return items.every(
+    (item) =>
+      typeof item === 'object' &&
+      item !== null &&
+      typeof (item as Record<string, unknown>).question === 'string' &&
+      typeof (item as Record<string, unknown>).answer === 'string',
+  );
+}
+
+function parseGenerationHistoryRow(row: GenerationHistoryRow): GenerationHistoryItem {
+  let result: unknown;
+  try {
+    result = JSON.parse(row.ResultJson);
+  } catch {
+    throw new Error(`Generation history item ${row.HistoryID} contains invalid result data.`);
+  }
+  if (!isGenerationHistoryResult(result)) {
+    throw new Error(`Generation history item ${row.HistoryID} has an unsupported result format.`);
+  }
+
+  const { ResultJson: _resultJson, ...preview } = row;
+  return { ...preview, Result: result };
+}
+
+const GENERATION_HISTORY_PREVIEW_SELECT = `
+  SELECT h.HistoryID, h.MaterialID, m.FileName AS MaterialName,
+    h.TaskType, h.Prompt, h.GeneratedDate
+  FROM GenerationHistory h
+  JOIN StudyMaterial m ON m.MaterialID = h.MaterialID`;
+
+const GENERATION_HISTORY_SELECT = `
+  SELECT h.HistoryID, h.MaterialID, m.FileName AS MaterialName,
+         h.TaskType, h.Prompt, h.ResultJson, h.GeneratedDate
+  FROM GenerationHistory h
+  JOIN StudyMaterial m ON m.MaterialID = h.MaterialID`;
+
+/** Get the local profile ID before adding material; creates the profile on first use. */
 export async function getOrCreateUserProfile(): Promise<UserProfile> {
   const database = getDatabase();
   const existing = await database.getFirstAsync<UserProfile>(
@@ -37,6 +121,10 @@ export async function getOrCreateUserProfile(): Promise<UserProfile> {
   return created;
 }
 
+/**
+ * Save a picked/copied document so screens can refer to it by MaterialID.
+ * The returned row contains the ID to pass to summaries, decks, and history queries.
+ */
 export async function createStudyMaterial(input: NewStudyMaterial): Promise<StudyMaterial> {
   const database = getDatabase();
   const result = await database.runAsync(
@@ -62,7 +150,7 @@ export async function listStudyMaterials(userId: number): Promise<StudyMaterial[
   );
 }
 
-/** Deletes a material and its related chunks, summaries, decks, and cards. */
+/** Delete action for a material; SQLite also removes its chunks, summaries, decks, cards, and history. */
 export async function deleteStudyMaterial(materialId: number): Promise<void> {
   await getDatabase().runAsync('DELETE FROM StudyMaterial WHERE MaterialID = ?', materialId);
 }
@@ -102,7 +190,7 @@ export async function updateChunkEmbedding(chunkId: number, embedding: Uint8Arra
   );
 }
 
-/** Persists a generated summary and returns it with its database ID and timestamp. */
+/** Save a generated summary for the summary screen's saved-results list. */
 export async function createCramSummary(
   materialId: number,
   summaryText: string,
@@ -121,7 +209,7 @@ export async function createCramSummary(
   return summary;
 }
 
-/** Lists a material's summaries newest first. */
+/** Load saved summaries for the selected material, newest first. */
 export async function listCramSummaries(materialId: number): Promise<CramSummary[]> {
   return getDatabase().getAllAsync<CramSummary>(
     'SELECT * FROM CramSummary WHERE MaterialID = ? ORDER BY GeneratedDate DESC, SummaryID DESC',
@@ -129,7 +217,70 @@ export async function listCramSummaries(materialId: number): Promise<CramSummary
   );
 }
 
-/** Creates a flashcard deck for a material and returns the saved deck. */
+/**
+ * Call after generation succeeds so the History screen can list and reopen the result.
+ * Also call createCramSummary or createRevisionDeck/createFlashcards when those feature screens
+ * use their dedicated saved-result queries.
+ */
+export async function createGenerationHistory(
+  input: NewGenerationHistory,
+): Promise<GenerationHistoryItem> {
+  const database = getDatabase();
+  const result = await database.runAsync(
+    'INSERT INTO GenerationHistory (MaterialID, TaskType, Prompt, ResultJson) VALUES (?, ?, ?, ?)',
+    input.MaterialID,
+    input.TaskType,
+    input.Prompt,
+    JSON.stringify(input.Result),
+  );
+  const item = await getGenerationHistoryItem(result.lastInsertRowId);
+  if (!item) throw new Error('Could not create the generation history record.');
+  return item;
+}
+
+/**
+ * Load rows for the History screen. Use filters for one material or task; each row has
+ * HistoryID, TaskType, Prompt, MaterialName, and GeneratedDate, but not the full result.
+ */
+export async function listGenerationHistory(
+  filters: GenerationHistoryFilters = {},
+): Promise<GenerationHistoryPreview[]> {
+  const conditions: string[] = [];
+  const parameters: (number | string)[] = [];
+  if (filters.materialId !== undefined) {
+    conditions.push('h.MaterialID = ?');
+    parameters.push(filters.materialId);
+  }
+  if (filters.taskType !== undefined) {
+    conditions.push('h.TaskType = ?');
+    parameters.push(filters.taskType);
+  }
+
+  const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
+  const limit = Math.max(1, Math.floor(filters.limit ?? 50));
+  const offset = Math.max(0, Math.floor(filters.offset ?? 0));
+  const rows = await getDatabase().getAllAsync<GenerationHistoryPreview>(
+    `${GENERATION_HISTORY_PREVIEW_SELECT}${whereClause}
+     ORDER BY h.GeneratedDate DESC, h.HistoryID DESC LIMIT ? OFFSET ?`,
+    ...parameters,
+    limit,
+    offset,
+  );
+  return rows;
+}
+
+/** Call when a history row is tapped; returns its full result, or null if it was deleted. */
+export async function getGenerationHistoryItem(
+  historyId: number,
+): Promise<GenerationHistoryItem | null> {
+  const row = await getDatabase().getFirstAsync<GenerationHistoryRow>(
+    `${GENERATION_HISTORY_SELECT} WHERE h.HistoryID = ?`,
+    historyId,
+  );
+  return row ? parseGenerationHistoryRow(row) : null;
+}
+
+/** Create a deck first; pass its DeckID to createFlashcards to save the generated cards. */
 export async function createRevisionDeck(
   materialId: number,
   deckName: string,
@@ -148,7 +299,7 @@ export async function createRevisionDeck(
   return deck;
 }
 
-/** Lists a material's flashcard decks. */
+/** Load a material's decks for the flashcard list; newest deck IDs come first. */
 export async function listRevisionDecks(materialId: number): Promise<RevisionDeck[]> {
   return getDatabase().getAllAsync<RevisionDeck>(
     'SELECT * FROM RevisionDeck WHERE MaterialID = ? ORDER BY DeckID DESC',
@@ -156,7 +307,7 @@ export async function listRevisionDecks(materialId: number): Promise<RevisionDec
   );
 }
 
-/** Saves generated cards together; new cards start at the schema's default mastery level. */
+/** Save generated cards together; each card needs the selected deck's DeckID. */
 export async function createFlashcards(cards: NewFlashcard[]): Promise<void> {
   if (cards.length === 0) return;
 
@@ -173,7 +324,7 @@ export async function createFlashcards(cards: NewFlashcard[]): Promise<void> {
   });
 }
 
-/** Returns cards in stable order for the flashcard study view. */
+/** Load a deck's cards for the study view, in stable order. */
 export async function listFlashcards(deckId: number): Promise<Flashcard[]> {
   return getDatabase().getAllAsync<Flashcard>(
     'SELECT * FROM Flashcard WHERE DeckID = ? ORDER BY CardID',
@@ -181,7 +332,7 @@ export async function listFlashcards(deckId: number): Promise<Flashcard[]> {
   );
 }
 
-/** Saves the mastery value selected by the flashcard review interaction. */
+/** Call after a learner chooses a mastery option for a card. */
 export async function updateFlashcardMastery(cardId: number, masteryLevel: number): Promise<void> {
   await getDatabase().runAsync(
     'UPDATE Flashcard SET MasteryLevel = ? WHERE CardID = ?',
