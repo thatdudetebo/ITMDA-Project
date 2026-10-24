@@ -2,11 +2,15 @@
 // Vectors live in MaterialChunk.VectorEmbedding as BLOBs, which is what
 // removes the need for a separate vector database.
 
-export const SCHEMA_VERSION = 2;
+// 3: CramSummary removed (summaries are stored in GenerationHistory).
+export const SCHEMA_VERSION = 3;
 
 export const CREATE_TABLES = `
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
+
+-- Left over from an older schema. It was never written to, so this loses nothing.
+DROP TABLE IF EXISTS CramSummary;
 
 CREATE TABLE IF NOT EXISTS UserProfile (
   UserID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,14 +34,6 @@ CREATE TABLE IF NOT EXISTS MaterialChunk (
   ChunkIndex      INTEGER NOT NULL,
   ExtractedText   TEXT NOT NULL,
   VectorEmbedding BLOB,
-  FOREIGN KEY (MaterialID) REFERENCES StudyMaterial(MaterialID) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS CramSummary (
-  SummaryID     INTEGER PRIMARY KEY AUTOINCREMENT,
-  MaterialID    INTEGER NOT NULL,
-  SummaryText   TEXT NOT NULL,
-  GeneratedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (MaterialID) REFERENCES StudyMaterial(MaterialID) ON DELETE CASCADE
 );
 
@@ -68,7 +64,6 @@ CREATE TABLE IF NOT EXISTS GenerationHistory (
 );
 
 CREATE INDEX IF NOT EXISTS idx_chunk_material ON MaterialChunk(MaterialID, ChunkIndex);
-CREATE INDEX IF NOT EXISTS idx_summary_material ON CramSummary(MaterialID);
 CREATE INDEX IF NOT EXISTS idx_deck_material ON RevisionDeck(MaterialID);
 CREATE INDEX IF NOT EXISTS idx_card_deck ON Flashcard(DeckID);
 CREATE INDEX IF NOT EXISTS idx_history_material_date ON GenerationHistory(MaterialID, GeneratedDate DESC, HistoryID DESC);

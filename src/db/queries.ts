@@ -1,5 +1,4 @@
 import type {
-  CramSummary,
   Flashcard,
   GenerationHistoryItem,
   GenerationHistoryPreview,
@@ -227,37 +226,10 @@ export async function updateChunkEmbedding(chunkId: number, embedding: Uint8Arra
   );
 }
 
-/** Save a generated summary for the summary screen's saved-results list. */
-export async function createCramSummary(
-  materialId: number,
-  summaryText: string,
-): Promise<CramSummary> {
-  const database = getDatabase();
-  const result = await database.runAsync(
-    'INSERT INTO CramSummary (MaterialID, SummaryText) VALUES (?, ?)',
-    materialId,
-    summaryText,
-  );
-  const summary = await database.getFirstAsync<CramSummary>(
-    'SELECT * FROM CramSummary WHERE SummaryID = ?',
-    result.lastInsertRowId,
-  );
-  if (!summary) throw new Error('Could not create the summary record.');
-  return summary;
-}
-
-/** Load saved summaries for the selected material, newest first. */
-export async function listCramSummaries(materialId: number): Promise<CramSummary[]> {
-  return getDatabase().getAllAsync<CramSummary>(
-    'SELECT * FROM CramSummary WHERE MaterialID = ? ORDER BY GeneratedDate DESC, SummaryID DESC',
-    materialId,
-  );
-}
-
 /**
- * Call after generation succeeds so the History screen can list and reopen the result.
- * Also call createCramSummary or createRevisionDeck/createFlashcards when those feature screens
- * use their dedicated saved-result queries.
+ * Call after generation succeeds so the History screen can list and reopen the result. Summaries,
+ * Q&A and answers live only here. Flashcards also create a deck and cards with
+ * createRevisionDeck and createFlashcards, so they can be studied and marked.
  */
 export async function createGenerationHistory(
   input: NewGenerationHistory,
