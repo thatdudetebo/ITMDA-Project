@@ -5,3 +5,8 @@ export function formatBytes(size: number): string {
   }
   return `${size} Bytes`;
 }
+
+/** The name shown for a material: the user's title, or the file name if it has none. */
+export function materialTitle(material: { ModuleCode: string | null; FileName: string }): string {
+  return material.ModuleCode?.trim() || material.FileName;
+}
