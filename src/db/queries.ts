@@ -324,6 +324,11 @@ export async function createFlashcards(cards: NewFlashcard[]): Promise<void> {
   });
 }
 
+/** Delete action for a deck; SQLite also removes its cards. */
+export async function deleteRevisionDeck(deckId: number): Promise<void> {
+  await getDatabase().runAsync('DELETE FROM RevisionDeck WHERE DeckID = ?', deckId);
+}
+
 /** Load a deck's cards for the study view, in stable order. */
 export async function listFlashcards(deckId: number): Promise<Flashcard[]> {
   return getDatabase().getAllAsync<Flashcard>(
