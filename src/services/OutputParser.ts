@@ -38,7 +38,8 @@ export function parseQAPairs(text: string): QAPair[] {
 
   const flush = () => {
     if (question !== null && answer !== null) {
-      const q = clean(question);
+      // Models often number questions after the marker, e.g. "Question: 1. What is ...".
+      const q = clean(question).replace(/^\d+[.)]\s*/, '');
       const a = clean(answer);
       if (q && a) pairs.push({ question: q, answer: a });
     }
