@@ -96,6 +96,25 @@ Emulator speed from the model's own log (not for performance figures): reading t
 tokens/s, writing about 18.7 tokens/s. One of the four runs took 20 minutes because the emulator
 had only about 200 MB of free memory. Repeat on a real phone.
 
+## 4c. Standalone release APK on the emulator
+
+The release build (`StudyBee-1.0.0-release-arm64-2026-10-24.apk`, 125 MB), installed **over** the
+existing development build, with no development server running.
+
+| ID  | Test                        | Expected                                                        | Actual                                                                            | Result |
+| --- | --------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------ |
+| R1  | Install as an update        | Installs over the old build, keeps data                         | "Success"; the existing material and its Continue link were still there           | Pass   |
+| R2  | Start without a laptop      | Opens straight into the app                                     | Home shown, no development launcher                                               | Pass   |
+| R3  | PDF import (the PDF reader) | Imports and chunks                                              | Imported in about 4 s                                                             | Pass   |
+| R4  | Scanned PDF                 | Friendly error                                                  | "This PDF has no selectable text (scanned PDFs aren't supported)."                | Pass   |
+| R5  | Search and answer           | Search finds the chunks, the model answers                      | Same top scores as before (0.724 first); answer in 29 s on the emulator           | Pass   |
+| R6  | Console lines in logcat     | Timing lines readable over USB                                  | `[embedding]`, `[retrieval]`, `[dispatch]` and `[generation]` lines shown         | Pass   |
+| R7  | Android Back button         | From a screen to My Library; on My Library the app closes       | As expected, no crash                                                             | Pass   |
+| R8  | Package check               | arm64 only, JS bundle and model engine inside, same signing key | 125 MB, 35 arm64 libraries, Hermes bundle, same certificate as the earlier builds | Pass   |
+
+Not tested in this build: the in-app model **Download** button (no model was downloaded in any
+test so far), Enhanced Mode (switched off), and a physical phone.
+
 ## 5. Automated checks (no device)
 
 `npm test` runs isolated tests of the logic that does not need a phone: the answer parser, chunk
