@@ -1,6 +1,5 @@
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { NavigationContainer } from '@react-navigation/native';
-/*import { StyleSheet } from 'react-native'; check*/
 
 import FlashcardsScreen from '../screens/FlashcardsScreen';
 import HistoryScreen from '../screens/HistoryScreen';
@@ -37,13 +36,8 @@ export default function RootNavigator() {
           options={{ title: 'Questions & answers' }}
         />
         <Drawer.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
-        <Drawer.Screen name = "History" component={HistoryScreen} options={{title: 'History'}}/>
+        <Drawer.Screen name="History" component={HistoryScreen} options={{ title: 'History' }} />
       </Drawer.Navigator>
     </NavigationContainer>
   );
 }
-
-/*const styles = StyleSheet.create({
-  background: {backgroundColor: '#1E1F24'},
-  color: {color: '#F4EFC8' },
-})check*/
