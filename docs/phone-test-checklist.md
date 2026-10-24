@@ -46,7 +46,7 @@ Use a text PDF of about 10 pages for most steps and one of 40 or more pages for 
 - [ ] **Upload.** Pick the PDF, the title popup is prefilled, an empty title is rejected, a real title imports. Import time: ______ s (10 pages) ______ s (40+ pages)
 - [ ] **Scanned PDF.** A scanned (image-only) PDF gives "no selectable text" and leaves nothing in the library.
 - [ ] **Summary.** Streams text, then stays on screen. Load ______ ms, ______ s, prompt tokens ______, output tokens ______
-- [ ] **Flashcards, three runs.** How many of the three gave a deck? ___ / 3. Cards flip, "Got it" shows "Mastered x of y". If runs fail with "Couldn't read the AI's answer", note how often. (If it is often, tell the maintainer: the app needs an automatic retry.)
+- [ ] **Flashcards, three runs.** How many of the three gave a deck? ___ / 3. Cards flip, "Got it" shows "Mastered x of y". On the emulator with Llama this worked 4 out of 4 runs after the fix (see `docs/test-log.md`), so repeat it here. If runs fail with "Couldn't read the AI's answer", note how often. (If it is often, tell the maintainer: the app needs an automatic retry.)
 - [ ] **Q&A.** Question and answer cards appear. Runs that worked ___ / 3
 - [ ] **Ask your material.** Ask about one specific fact that is in the PDF. Is the answer right? ______ First question on this PDF indexes it: ______ ms. Second question: ______ s
 - [ ] **Search model off.** Delete the BGE model in Settings, open Questions again (the hint "The search model is not installed..." shows) and ask: an answer still comes, and the log shows `[pipeline] retrieval failed, using sampled chunks` with no `[retrieval] top` line. Install the model again.

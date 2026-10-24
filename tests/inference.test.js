@@ -1,6 +1,6 @@
 const assert = require('assert');
 const B = process.argv[2];
-const { parseQAPairs } = require(B + '/services/OutputParser.js');
+const { parseQAPairs, endsWithDanglingQuestion } = require(B + '/services/OutputParser.js');
 const { sampleChunks } = require(B + '/services/ChunkSampler.js');
 const t = (name, fn) => {
   try {
@@ -119,4 +119,108 @@ t('numbered question text is cleaned', () => {
     { question: 'What is ATP?', answer: 'Energy.' },
     { question: 'Why?', answer: 'Because.' },
   ]);
+});
+
+t('template leftovers are not real pairs', () => {
+  assert.deepEqual(parseQAPairs('Q: question\nA: The Calvin cycle fixes carbon.'), []);
+  assert.deepEqual(parseQAPairs('Q: What is ATP?\nA: answer'), []);
+  assert.deepEqual(parseQAPairs('Q: <the question>\nA: <the answer>'), []);
+  assert.deepEqual(parseQAPairs('Q: **Question**\nA: Something real.'), []);
+  assert.deepEqual(parseQAPairs('Q: ...\nA: ...'), []);
+});
+t('a sentence repeated as question and answer is dropped', () => {
+  const sentence = 'The Calvin cycle takes place in the stroma.';
+  assert.deepEqual(parseQAPairs(`Q: ${sentence}\nA: ${sentence}`), []);
+  assert.deepEqual(parseQAPairs(`Q: ${sentence.toUpperCase()}\nA: ${sentence}`), []);
+});
+t('the same question twice keeps the first', () => {
+  const p = parseQAPairs('Q: What is ATP?\nA: Energy.\nQ: what is atp?\nA: Something else.');
+  assert.equal(p.length, 1);
+  assert.equal(p[0].answer, 'Energy.');
+});
+t('real pairs next to a template leftover survive (the Llama case)', () => {
+  const p = parseQAPairs(
+    'Q: question\nA: junk\nQ: What does RuBisCO do?\nA: It fixes carbon dioxide.\nQ: What are stomata?\nA: Pores on leaves.',
+  );
+  assert.deepEqual(
+    p.map((x) => x.question),
+    ['What does RuBisCO do?', 'What are stomata?'],
+  );
+});
+t('answers that merely contain the word "answer" are kept', () => {
+  assert.equal(
+    parseQAPairs('Q: Why is the answer wrong?\nA: The answer ignores friction.').length,
+    1,
+  );
+});
+t('the exact Llama failure from the emulator yields no usable pair', () => {
+  // Real output (default temperature): the template word copied, then note sentences as "questions".
+  const raw =
+    'Q: question\nA: The Calvin cycle takes place in the stroma of the chloroplast.\n\nQ: The Calvin cycle takes place in the stroma of the chloroplast.\n\nQ: The enzyme RuBisCO catalyses carbon fixation.\n\nQ:';
+  assert.deepEqual(parseQAPairs(raw), []);
+});
+
+t('more ways a model copies the template are all rejected', () => {
+  for (const q of [
+    'question?',
+    'Question 1',
+    'Your question here',
+    'The question',
+    '[question]',
+    '"Question"',
+    'Question.',
+  ]) {
+    assert.deepEqual(parseQAPairs(`Q: ${q}\nA: Some real answer.`), [], `question ${q}`);
+  }
+  for (const a of ['answer here', 'Your answer', '[answer]', 'Answer 1', '...', '*']) {
+    assert.deepEqual(parseQAPairs(`Q: What is ATP?\nA: ${a}`), [], `answer ${a}`);
+  }
+});
+t('a note sentence copied as question and answer with different punctuation is dropped', () => {
+  assert.deepEqual(
+    parseQAPairs('Q: The cell is the unit of life?\nA: The cell is the unit of life.'),
+    [],
+  );
+  assert.deepEqual(
+    parseQAPairs('Q: The cell is the unit of life\nA: The cell is the unit of life.'),
+    [],
+  );
+  assert.deepEqual(
+    parseQAPairs('Q:  the CELL is the unit of life \nA: The cell, is the unit of life!'),
+    [],
+  );
+});
+t('short real answers and ordinary words are kept', () => {
+  assert.equal(parseQAPairs('Q: Is the sky blue?\nA: True').length, 1);
+  assert.equal(parseQAPairs('Q: What is 2 + 2?\nA: 4').length, 1);
+  assert.equal(parseQAPairs('Q: Which option is correct?\nA: B').length, 1);
+  assert.equal(
+    parseQAPairs('Q: What is the answer to exercise 3?\nA: The answer is 42.').length,
+    1,
+  );
+  assert.equal(parseQAPairs('Q: Qu\u00e9 es una c\u00e9lula?\nA: La unidad de la vida.').length, 1);
+});
+
+t('symbols that carry meaning are not erased when comparing', () => {
+  const p = parseQAPairs(
+    'Q: What is C++?\nA: A language.\nQ: What is C#?\nA: Another language.\nQ: What is 2+3?\nA: 5\nQ: What is 2-3?\nA: -1',
+  );
+  assert.equal(p.length, 4);
+});
+t('answers made only of symbols are real answers', () => {
+  assert.equal(
+    parseQAPairs('Q: What is the limit of 1/x as x tends to 0 from the right?\nA: \u221e').length,
+    1,
+  );
+  assert.equal(parseQAPairs('Q: Which symbol means not equal?\nA: \u2260').length, 1);
+  assert.equal(parseQAPairs('Q: What does the unit of concentration use?\nA: %').length, 1);
+  assert.deepEqual(parseQAPairs('Q: What is ATP?\nA: ***'), []);
+});
+t('endsWithDanglingQuestion: a cut-off next question, not a finished answer', () => {
+  assert.equal(endsWithDanglingQuestion('Q: One?\nA: First.\nQ: What is'), true);
+  assert.equal(endsWithDanglingQuestion('Q: One?\nA: First.\n\nQ:'), true);
+  assert.equal(endsWithDanglingQuestion('Q: One?\nA: First answer that was cut'), false);
+  assert.equal(endsWithDanglingQuestion('Q: One?\nA: First.\n\n'), false);
+  assert.equal(endsWithDanglingQuestion(''), false);
+  assert.equal(endsWithDanglingQuestion('Q: One? A: both on one line'), false);
 });
