@@ -118,6 +118,33 @@ Macs need x86_64.
 The first build of either kind takes 10-20 minutes because llama.cpp compiles from source.
 Later builds reuse the CMake cache unless you ran `prebuild --clean`.
 
+### Standalone APK for phones (no laptop needed)
+
+The two builds above are **development** builds: the app code is not inside them, it is served by
+`npm start`. For testers who just want to install and use the app, build a **release** build, which
+has the JavaScript inside it:
+
+```bash
+cd android
+ORG_GRADLE_PROJECT_reactNativeArchitectures=arm64-v8a ./gradlew assembleRelease
+```
+
+About 7 minutes (a few minutes more the first time). The result is
+`android/app/build/outputs/apk/release/app-release.apk`, about 125 MB, arm64 only, which covers
+every physical phone (leave out the environment variable to build all four architectures for
+emulators on Intel Macs and Windows).
+
+- It is signed with the same key as the development builds, so it installs **over** any older
+  StudyBee as an update and keeps the user's models and data. Never ask a tester to uninstall.
+- Minification is switched off (`enableProguardInReleaseBuilds: false` in `app.json`). With it on,
+  the build can strip classes that the PDF reader and the model engine load by name, and a
+  tester would only find out when an import crashed. The size saving is not worth it here.
+- Changing `app.json` means running `npm run prebuild` first so `android/` is regenerated.
+- `console.log` lines still reach `adb logcat` in the release build, so timings can be read over a
+  USB cable: `adb logcat -s ReactNativeJS`.
+- Name the file `StudyBee-<version>-release-arm64-<date>.apk` and publish a checksum
+  (`shasum -a 256`) next to it.
+
 ### Verify the AI engine actually made it in
 
 ```bash
@@ -140,21 +167,18 @@ It cannot go in the repository: `android/` is gitignored, and GitHub rejects fil
 [Releases](https://github.com/thatdudetebo/ITMDA-Project/releases) instead.
 
 1. Draft a new release
-2. Tag with the date - `apk-2026-10-15`
-3. Attach `app-debug.apk`
+2. Tag with the date - `apk-2026-10-15` (add `-release` for a standalone build)
+3. Attach `app-debug.apk` (developers) or the standalone `StudyBee-...-release-arm64-....apk` (testers)
 4. In the notes, list which native dependency changed and its version
 5. Publish, then tell the group
 
 ### Keep the debug keystore
 
-Debug APKs are signed with `~/.android/debug.keystore`, generated once per machine. Every
-release must be signed with the **same** keystore, or teammates get "App not installed"
-when updating and have to uninstall - which destroys their imported model and local
-database.
-
-So: do not delete `~/.android/`, and do not publish a release built on a different
-computer. If the keystore is ever lost, warn the group that the next update requires an
-uninstall before they install it.
+Both the debug and the release builds are signed with `android/app/debug.keystore`. That file is
+the standard keystore from the Expo project template, so it is identical on every machine and
+every APK (debug or release) can update any other. Do not change the signing settings: a
+different key makes teammates get "App not installed" when updating and forces an uninstall, which
+destroys their imported models and local database.
 
 ### Do not lower the version
 

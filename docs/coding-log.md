@@ -530,3 +530,56 @@ Emulator speed from the model's own log: reading the prompt about 15 tokens/s, w
 Enhanced Mode (`docs/enhanced-mode-plan.md`) waits for the group's approval and accounts.
 
 ---
+
+## Handoff 10: standalone release APK built and tested
+
+**Date:** 2026-10-24
+**Built from:** `main` at 51653b0 (identical to GitHub `main` when built).
+
+### The file
+
+`StudyBee-1.0.0-release-arm64-2026-10-24.apk`, 125 MB, SHA-256
+`465c07854b9e31fcfa1be15905787bc8ca417aef9bdca23cab9da5965ce8e60b`.
+A copy and its `.sha256` file are in your `Downloads` folder.
+
+- arm64 only (every physical phone). Android 7 or newer. The app code is inside, so no laptop is needed.
+- Signed with the project's own key, so it installs **over** the earlier development build and keeps the models and data.
+- Minification is off (`app.json`: `enableProguardInReleaseBuilds: false`), so the PDF reader and the model engine are not stripped.
+
+### Tested on the emulator (no development server running)
+
+Install as an update (data kept), start-up, PDF import (about 4 s), scanned-PDF error, search plus answer (29 s on the emulator), console lines visible in `adb logcat`, Android Back button. See `docs/test-log.md` section 4c.
+
+### Commits to make
+
+```
+git switch -c build/release-apk
+
+git add app.json docs/BUILDING.md
+git commit -m "build(android): turn off release minification and document the standalone APK"
+
+git add README.md docs/deliverable-4-checklist.md docs/phone-test-checklist.md docs/test-log.md docs/coding-log.md
+git commit -m "docs: standalone APK, phone test setup and release test results"
+
+git push -u origin build/release-apk     # open the PR and merge it
+```
+
+### Sharing the APK (your decision: this publishes a file)
+
+```
+gh release create apk-2026-10-24-release \
+  ~/Downloads/StudyBee-1.0.0-release-arm64-2026-10-24.apk \
+  ~/Downloads/StudyBee-1.0.0-release-arm64-2026-10-24.apk.sha256 \
+  --title "StudyBee 1.0.0 standalone APK (arm64)" \
+  --notes "Standalone build for testers: the app is inside, no laptop needed. Install over an older StudyBee, never uninstall. Then install the models in Settings (see docs/phone-test-checklist.md)."
+```
+
+Or send the file directly (Drive, WhatsApp, cable).
+
+### Not verified
+
+- A physical phone (the whole point of Phase 7), including how much RAM the Llama model needs and how long a PDF import takes.
+- The in-app model **Download** button has never been run on any device. Testers should use **Import model (.gguf)** if it fails.
+- Enhanced Mode is not built (Deliverable 5).
+
+---

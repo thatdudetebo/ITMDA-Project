@@ -67,6 +67,7 @@ Changes made after the Deliverable 3 design (the ERD, wireframes and architectur
 - **Added** rename and delete for materials, and delete for decks and history rows, so each of those modules supports create, read, update and delete.
 - **Changed** how the model answers are read: flashcards and Q&A are requested as `Q:` / `A:` pairs and parsed into cards.
 - **Changed** to a drawer menu with six screens, and a dark theme.
+- **Added** a standalone release APK (the app code inside, no laptop needed) and turned off minification in release builds so the PDF reader and the model engine are not stripped.
 - **Changed** generation to per-task temperatures (0.3 for flashcards and Q&A, 0.4 for your own questions, 0.5 for summaries) and stricter reading of flashcards and Q&A: template leftovers such as "Q: question", repeated or copied questions are ignored, at most the first 5 pairs are kept, an unfinished last pair from a cut-off answer is dropped, and a result with fewer than 2 usable pairs is refused with a clear message. Found by running the real Llama 3.2 1B model, which at the default temperature once copied the template word instead of writing questions.
 
 <br>
@@ -129,6 +130,11 @@ Download the newest `app-debug.apk` from
 - **Emulator**: start it, then drag the `.apk` onto its window.
 
 This is our app shell with the AI engine compiled inside. You never build it.
+
+There are two kinds of APK on Releases. `app-debug.apk` is the **developer** build: it needs
+`npm start` running on a laptop. The **standalone** build (`StudyBee-...-release-arm64-....apk`) is for
+testers: it has the app code inside and runs on its own on any arm64 phone. Install either one
+**over** an older StudyBee, never after uninstalling it.
 [@SirMcKenzie](https://github.com/sirmckenzie) publishes a new one when the native
 dependencies change.
 

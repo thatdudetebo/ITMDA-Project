@@ -7,16 +7,28 @@ Tick each box only when you saw it work. Write what went wrong next to anything 
 
 ## 1. Setup
 
-- [ ] Install the newest `app-debug.apk` from Releases **over the old one**. Never uninstall (it deletes the models and the database). No new APK is needed for the current code.
-- [ ] `git switch main && git pull && npm install && npm start`, then scan the QR code (phone and laptop on the same Wi-Fi).
-- [ ] Open **Settings -> AI Models** and install the Llama model and the BGE search model (Download on Wi-Fi, or Import).
+**What the phone needs:** a normal Android phone (arm64, Android 7 or newer, which is every recent
+phone), about 1 GB of free space for the models, and ideally **4 GB of RAM or more** for the Llama
+model. Phones with less RAM have not been tried: if the model fails to load, note the phone model
+and its RAM and tell the maintainer.
+
+**Pick how to run the app:**
+
+- **A. Standalone APK (recommended, no laptop).** Install `StudyBee-1.0.0-release-arm64-2026-10-24.apk` (allow "install from unknown sources" when asked). Never uninstall an older StudyBee first: install over it, which keeps its models and data. The app is complete inside the file. There are no logs on the phone, so take times with a stopwatch, or use C.
+- **B. Development APK and a laptop.** Install `app-debug.apk`, then `git switch main && git pull && npm install && npm start` and scan the QR code (phone and laptop on the same Wi-Fi). Timings show in the Metro terminal.
+- **C. Standalone APK and a USB cable.** Turn on USB debugging on the phone, connect it to a laptop with `adb`, and run `adb logcat -s ReactNativeJS`. It prints the same lines as the Metro terminal.
+
+**Install the models** (Settings, **AI Models**) on each phone:
+
+- [ ] **Llama 3.2 1B** (about 770 MB) and **BGE Small** (about 35 MB). The in-app **Download** button uses Wi-Fi.
+- [ ] **The in-app Download has not been tried on a real phone yet.** If it fails or stalls, download the two files in the phone's browser (links in the README) and use **Import model (.gguf)** instead. Either way, note which one worked.
 - [ ] Settings shows both as "Installed" with sizes, and the Home banner "No AI model installed" is gone.
 
-Record: phone model ______ Android version ______ RAM ______ battery saver off [ ]
+Record: phone model ______ Android version ______ RAM ______ battery saver off [ ] app: A / B / C
 
 ## 2. Where the numbers come from
 
-Watch the **Metro terminal** (or `adb logcat | grep ReactNativeJS`). The app prints one line for each:
+With option B watch the **Metro terminal**; with option C use `adb logcat -s ReactNativeJS`. Option A prints nothing you can see. The app prints one line for each:
 
 | What                  | Log line                                                                            |
 | --------------------- | ----------------------------------------------------------------------------------- |

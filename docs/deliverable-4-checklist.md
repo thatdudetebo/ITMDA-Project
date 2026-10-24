@@ -26,7 +26,7 @@ in the repo or to `docs/test-log.md`.
   - `GenerationHistory` was added. It stores every generated result (summary, flashcards, Q&A, answers) and drives the History screen.
   - `CramSummary` was **removed** (table, queries and type). Summaries are stored in `GenerationHistory`, which made it redundant. Existing installs drop the empty table on the next start. See the CHANGELOG in the README.
   - The user's title for a material is stored in `StudyMaterial.ModuleCode` (no schema change).
-- [ ] **Decision needed - web services.** The module is "Mobile Application and Webservices" and the final presentation asks for the app's "supporting web services" and "app and web services" integration. The app is fully on-device. The only web-service hook is Enhanced Mode (cloud generation), which is switched off ("Cloud mode coming soon") because no backend URL exists (`CLOUD_ENDPOINT_URL` in `src/config.ts`). Options: (a) argue that offline on-device AI is the design and the local database meets the guide's Deliverable 4 wording; (b) build a small cloud endpoint for Enhanced Mode. Ask your lecturer which they expect.
+- [x] **The cloud endpoint is not required for Deliverable 4.** The guide's wording is "Integration with a cloud database or a local database is required, depending on the nature of the system", and the app has a local SQLite database with full create, read, update and delete. Enhanced Mode (a cloud model answering instead of the phone) is planned for Deliverable 5 (`docs/enhanced-mode-plan.md`). Until then the Settings switch is disabled and says "Cloud mode coming soon". The final presentation (not Deliverable 4) mentions "supporting web services", so Enhanced Mode matters for that.
 
 ## 4. Core functionality (at least two complete CRUD modules)
 
@@ -71,6 +71,6 @@ in the repo or to `docs/test-log.md`.
 
 1. Run the automated tests with `npm test` and do the phone test with Llama 3.2 1B (`docs/phone-test-checklist.md`). On the emulator the real Llama model followed the `Q:` / `A:` format in 4 of 4 runs after a fix (the 135M development model does not); the phone must confirm it.
 2. Get a higher-resolution logo from Lea (the current file is 29 x 22 px and looks blurry).
-3. Decide the web-services question above (Enhanced Mode needs a backend, see `docs/enhanced-mode-plan.md`).
+3. Enhanced Mode and its small web service (`docs/enhanced-mode-plan.md`) are for Deliverable 5 and the final presentation, not Deliverable 4.
 4. Compare the app with the Deliverable 3 wireframes and list the differences.
 5. Instruction 6 in the guide says AI tools must not be used "to create content and submit it as your own work". Ask your lecturer how that applies to AI-assisted code, and write the Deliverable 5 and 6 text (testing narrative, reflection) yourselves.
