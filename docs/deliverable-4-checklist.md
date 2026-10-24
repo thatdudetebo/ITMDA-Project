@@ -69,7 +69,7 @@ in the repo or to `docs/test-log.md`.
 
 ## 9. Open items before submitting
 
-1. Run the automated tests with `npm test` and do the phone test with Llama 3.2 1B (`docs/phone-test-checklist.md`). The biggest unknown is whether flashcards and Q&A answers follow the `Q:` / `A:` format. The 135M development model does not.
+1. Run the automated tests with `npm test` and do the phone test with Llama 3.2 1B (`docs/phone-test-checklist.md`). On the emulator the real Llama model followed the `Q:` / `A:` format in 4 of 4 runs after a fix (the 135M development model does not); the phone must confirm it.
 2. Get a higher-resolution logo from Lea (the current file is 29 x 22 px and looks blurry).
 3. Decide the web-services question above (Enhanced Mode needs a backend, see `docs/enhanced-mode-plan.md`).
 4. Compare the app with the Deliverable 3 wireframes and list the differences.
