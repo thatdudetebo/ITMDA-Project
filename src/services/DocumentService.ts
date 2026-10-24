@@ -12,7 +12,9 @@ import {
   createStudyMaterial,
   deleteStudyMaterial,
   getOrCreateUserProfile,
+  getStudyMaterial,
   listStudyMaterials,
+  updateStudyMaterialTitle,
 } from '../db/queries';
 import type { StudyMaterial } from '../types/models';
 import { toMessage } from '../utils/errors';
@@ -30,6 +32,16 @@ export interface PickedDocument {
 export type ImportStage = 'copying' | 'extracting' | 'saving' | 'chunking';
 
 export const MAX_TITLE_LENGTH = 80;
+
+/** Returns the trimmed title, or throws a message the user can read. */
+export function validateTitle(title: string): string {
+  const clean = title.trim();
+  if (!clean) throw new Error('Enter a title for this material.');
+  if (clean.length > MAX_TITLE_LENGTH) {
+    throw new Error(`Keep the title under ${MAX_TITLE_LENGTH} characters.`);
+  }
+  return clean;
+}
 
 /** Folder inside app storage that holds a permanent copy of every imported PDF. */
 function materialsDirectory(): Directory {
@@ -108,11 +120,7 @@ export async function importDocument(
   title: string,
   onProgress?: (stage: ImportStage) => void,
 ): Promise<StudyMaterial> {
-  const cleanTitle = title.trim();
-  if (!cleanTitle) throw new Error('Enter a title for this material.');
-  if (cleanTitle.length > MAX_TITLE_LENGTH) {
-    throw new Error(`Keep the title under ${MAX_TITLE_LENGTH} characters.`);
-  }
+  const cleanTitle = validateTitle(title);
 
   const directory = materialsDirectory();
   directory.create({ intermediates: true, idempotent: true });
@@ -161,9 +169,16 @@ export async function listMaterials(): Promise<StudyMaterial[]> {
 
 /** Deletes a material with its chunks, decks, summaries and history, and its stored PDF. */
 export async function deleteMaterial(materialId: number): Promise<void> {
-  const material = (await listMaterials()).find((item) => item.MaterialID === materialId);
+  const material = await getStudyMaterial(materialId);
   if (!material) throw new Error('That material no longer exists.');
 
   await deleteStudyMaterial(materialId);
   removeFile(new File(material.FilePath));
+}
+
+/** Changes a material's title. */
+export async function renameMaterial(materialId: number, title: string): Promise<void> {
+  const clean = validateTitle(title);
+  if (!(await getStudyMaterial(materialId))) throw new Error('That material no longer exists.');
+  await updateStudyMaterialTitle(materialId, clean);
 }

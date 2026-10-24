@@ -93,13 +93,13 @@ function parseGenerationHistoryRow(row: GenerationHistoryRow): GenerationHistory
 }
 
 const GENERATION_HISTORY_PREVIEW_SELECT = `
-  SELECT h.HistoryID, h.MaterialID, m.FileName AS MaterialName,
+  SELECT h.HistoryID, h.MaterialID, COALESCE(m.ModuleCode, m.FileName) AS MaterialName,
     h.TaskType, h.Prompt, h.GeneratedDate
   FROM GenerationHistory h
   JOIN StudyMaterial m ON m.MaterialID = h.MaterialID`;
 
 const GENERATION_HISTORY_SELECT = `
-  SELECT h.HistoryID, h.MaterialID, m.FileName AS MaterialName,
+  SELECT h.HistoryID, h.MaterialID, COALESCE(m.ModuleCode, m.FileName) AS MaterialName,
          h.TaskType, h.Prompt, h.ResultJson, h.GeneratedDate
   FROM GenerationHistory h
   JOIN StudyMaterial m ON m.MaterialID = h.MaterialID`;
@@ -121,6 +121,26 @@ export async function getOrCreateUserProfile(): Promise<UserProfile> {
   return created;
 }
 
+/** Saves the name and email shown in Settings. Empty text is stored as null. */
+export async function updateUserProfile(
+  userId: number,
+  input: { Name: string | null; Email: string | null },
+): Promise<UserProfile> {
+  const database = getDatabase();
+  await database.runAsync(
+    'UPDATE UserProfile SET Name = ?, Email = ? WHERE UserID = ?',
+    input.Name,
+    input.Email,
+    userId,
+  );
+  const profile = await database.getFirstAsync<UserProfile>(
+    'SELECT UserID, Name, Email FROM UserProfile WHERE UserID = ?',
+    userId,
+  );
+  if (!profile) throw new Error('That profile no longer exists.');
+  return profile;
+}
+
 /**
  * Save a picked/copied document so screens can refer to it by MaterialID.
  * The returned row contains the ID to pass to summaries, decks, and history queries.
@@ -140,6 +160,23 @@ export async function createStudyMaterial(input: NewStudyMaterial): Promise<Stud
   );
   if (!material) throw new Error('Could not create the study material record.');
   return material;
+}
+
+/** Returns one material, or null if it was deleted. */
+export async function getStudyMaterial(materialId: number): Promise<StudyMaterial | null> {
+  return getDatabase().getFirstAsync<StudyMaterial>(
+    'SELECT * FROM StudyMaterial WHERE MaterialID = ?',
+    materialId,
+  );
+}
+
+/** Rename action for a material. The title is stored in ModuleCode. */
+export async function updateStudyMaterialTitle(materialId: number, title: string): Promise<void> {
+  await getDatabase().runAsync(
+    'UPDATE StudyMaterial SET ModuleCode = ? WHERE MaterialID = ?',
+    title,
+    materialId,
+  );
 }
 
 /** Lists a user's materials newest first for the study-material list. */
@@ -278,6 +315,11 @@ export async function getGenerationHistoryItem(
     historyId,
   );
   return row ? parseGenerationHistoryRow(row) : null;
+}
+
+/** Delete action for one history row. Decks and cards made by the same run are not touched. */
+export async function deleteGenerationHistory(historyId: number): Promise<void> {
+  await getDatabase().runAsync('DELETE FROM GenerationHistory WHERE HistoryID = ?', historyId);
 }
 
 /** Create a deck first; pass its DeckID to createFlashcards to save the generated cards. */

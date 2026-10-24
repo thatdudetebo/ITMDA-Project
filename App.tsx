@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import RootNavigator from './src/navigation/RootNavigator';
 import { initialiseDatabase } from './src/db/database';
+import { ActiveMaterialProvider } from './src/state/ActiveMaterialContext';
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -36,8 +37,10 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <RootNavigator />
-      <StatusBar style="auto" />
+      <ActiveMaterialProvider>
+        <RootNavigator />
+      </ActiveMaterialProvider>
+      <StatusBar style="light" />
     </SafeAreaProvider>
   );
 }
