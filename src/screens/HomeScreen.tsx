@@ -24,7 +24,8 @@ import { useActiveMaterial } from '../state/ActiveMaterialContext';
 import { colors } from '../theme';
 import type { GenerationHistoryPreview, GenerationHistoryTask } from '../types/models';
 import { toMessage } from '../utils/errors';
-import { materialTitle } from '../utils/format';
+import { formatTimestamp, materialTitle } from '../utils/format';
+import { SCREEN_FOR_TASK, TASK_BADGE } from '../utils/tasks';
 
 type Navigation = DrawerNavigationProp<RootDrawerParamList>;
 
@@ -34,20 +35,6 @@ const STAGE_LABEL: Record<ImportStage, string> = {
   saving: 'Saving...',
   chunking: 'Preparing your notes...',
 };
-
-const TASK_LABEL: Record<GenerationHistoryTask, string> = {
-  summary: 'Summary',
-  flashcards: 'Flashcards',
-  questions: 'Q&A',
-  freeform: 'Questions asked',
-};
-
-const SCREEN_FOR_TASK = {
-  summary: 'Summary',
-  flashcards: 'Flashcards',
-  questions: 'Questions',
-  freeform: 'Questions',
-} as const;
 
 /** "Mathematics.pdf" becomes "Mathematics", the suggested title for a new upload. */
 function suggestTitle(fileName: string): string {
@@ -92,7 +79,7 @@ export default function HomeScreen() {
     return map;
   }, [history]);
   const tasksFor = (materialId: number): GenerationHistoryTask[] =>
-    (Object.keys(TASK_LABEL) as GenerationHistoryTask[]).filter((task) =>
+    (Object.keys(TASK_BADGE) as GenerationHistoryTask[]).filter((task) =>
       tasksByMaterial.get(materialId)?.has(task),
     );
   const lastItem = material ? history.find((h) => h.MaterialID === material.MaterialID) : undefined;
@@ -217,7 +204,8 @@ export default function HomeScreen() {
               accessibilityRole="button"
             >
               <Text style={styles.link}>
-                Continue: {TASK_LABEL[lastItem.TaskType]} ({lastItem.GeneratedDate.slice(0, 10)})
+                Continue: {TASK_BADGE[lastItem.TaskType]} (
+                {formatTimestamp(lastItem.GeneratedDate, true)})
               </Text>
             </Pressable>
           )}
@@ -287,8 +275,8 @@ export default function HomeScreen() {
                 {title}
               </Text>
               <Text style={styles.rowMeta}>
-                {item.UploadDate.slice(0, 10)}
-                {tasks.length > 0 ? `  |  ${tasks.map((t) => TASK_LABEL[t]).join(', ')}` : ''}
+                {formatTimestamp(item.UploadDate, true)}
+                {tasks.length > 0 ? `  |  ${tasks.map((t) => TASK_BADGE[t]).join(', ')}` : ''}
               </Text>
             </Pressable>
           );
