@@ -25,6 +25,7 @@ const reset = () =>
     deleted: [],
     dispatchDelay: 0,
     routerBusy: false,
+    cut: false,
     failCards: false,
     failHistory: false,
   });
@@ -50,6 +51,7 @@ const stubs = {
     },
   },
   'services/InferenceRouter': {
+    lastDispatchWasCut: () => state.cut,
     isRouterBusy: () => state.routerBusy,
     dispatch: async (task, chunks, userText, onToken) => {
       state.dispatchArgs = { task, chunks, userText };
@@ -128,6 +130,89 @@ const QA = 'Q: One?\nA: a1\nQ: Two?\nA: a2\nQ: Three?\nA: a3';
     await rejects(generateForMaterial(7, 'flashcards'), /Couldn't read/);
     assert.equal(state.decks.length, 0);
     assert.equal(state.history.length, 0);
+  });
+
+  await t('a single usable pair is refused (the format was not followed)', async () => {
+    state.dispatchText =
+      'Q: question\nA: The Calvin cycle fixes carbon.\nQ: What is ATP?\nA: Energy.';
+    await rejects(generateForMaterial(7, 'questions'), /only one usable item/);
+    assert.equal(state.history.length, 0);
+  });
+  await t('flashcards with only template leftovers create no deck', async () => {
+    state.dispatchText = 'Q: question\nA: answer\nQ: question\nA: answer';
+    await rejects(generateForMaterial(7, 'flashcards'), /Couldn't read/);
+    assert.equal(state.decks.length, 0);
+  });
+  await t('a model that runs on is cut to the first five pairs', async () => {
+    state.dispatchText = Array.from(
+      { length: 9 },
+      (_, i) => `Q: Question number ${i + 1}?\nA: Answer number ${i + 1}.`,
+    ).join('\n');
+    const r = await generateForMaterial(7, 'questions');
+    assert.equal(r.Result.items.length, 5);
+    assert.equal(r.Result.items[4].question, 'Question number 5?');
+  });
+  await t('flashcards from a long answer keep five cards and the deck has five', async () => {
+    state.dispatchText = Array.from(
+      { length: 8 },
+      (_, i) => `Q: Term ${i + 1}?\nA: Meaning ${i + 1}.`,
+    ).join('\n');
+    await generateForMaterial(7, 'flashcards');
+    assert.equal(state.cards.length, 5);
+  });
+  await t('two good pairs are enough', async () => {
+    state.dispatchText = 'Q: What is ATP?\nA: Energy.\nQ: What is NADPH?\nA: A carrier.';
+    const r = await generateForMaterial(7, 'questions');
+    assert.equal(r.Result.items.length, 2);
+  });
+
+  await t('a run cut off by the limit drops its unfinished last pair', async () => {
+    state.cut = true;
+    state.dispatchText = Array.from(
+      { length: 4 },
+      (_, i) => `Q: What is concept ${i + 1}?\nA: Concept ${i + 1} is defined in the notes.`,
+    ).join('\n');
+    const r = await generateForMaterial(7, 'questions');
+    assert.deepEqual(
+      r.Result.items.map((x) => x.question),
+      ['What is concept 1?', 'What is concept 2?', 'What is concept 3?'],
+    );
+  });
+  await t(
+    'a cut-off run with no pairs to spare keeps them and marks the unfinished answer',
+    async () => {
+      state.cut = true;
+      state.dispatchText =
+        'Q: What is concept 1?\nA: Concept 1 is defined in the notes.\nQ: What is concept 2?\nA: Concept 2 is defined in the';
+      const r = await generateForMaterial(7, 'questions');
+      assert.equal(r.Result.items.length, 2);
+      assert.equal(r.Result.items[0].answer, 'Concept 1 is defined in the notes.');
+      assert.match(r.Result.items[1].answer, /defined in the \.\.\.$/);
+    },
+  );
+  await t('a cut-off run that ended on the start of a next question loses nothing', async () => {
+    state.cut = true;
+    state.dispatchText =
+      Array.from(
+        { length: 4 },
+        (_, i) => `Q: What is concept ${i + 1}?\nA: Concept ${i + 1} is defined in the notes.`,
+      ).join('\n') + '\nQ: What is con';
+    const r = await generateForMaterial(7, 'questions');
+    assert.equal(r.Result.items.length, 4);
+    assert.equal(r.Result.items[3].answer, 'Concept 4 is defined in the notes.');
+  });
+  await t('the same output is fully kept when the run was not cut off', async () => {
+    state.cut = false;
+    state.dispatchText = Array.from(
+      { length: 4 },
+      (_, i) => `Q: What is concept ${i + 1}?\nA: Concept ${i + 1} is defined in the notes.`,
+    ).join('\n');
+    const r = await generateForMaterial(7, 'questions');
+    assert.equal(r.Result.items.length, 4);
+  });
+  await t('no markers at all gives the generic message, not the one-item message', async () => {
+    state.dispatchText = 'I am unable to help with that.';
+    await rejects(generateForMaterial(7, 'flashcards'), /Couldn't read the AI's answer/);
   });
   await t('empty summary text rejected', async () => {
     state.dispatchText = '   ';

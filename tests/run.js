@@ -36,6 +36,11 @@ const suites = [
     test: 'retrieval.test.js',
   },
   {
+    name: 'inference router',
+    files: ['src/services/InferenceRouter.ts'],
+    test: 'router.test.js',
+  },
+  {
     name: 'active material',
     files: ['src/utils/activeMaterial.ts'],
     test: 'activeMaterial.test.js',

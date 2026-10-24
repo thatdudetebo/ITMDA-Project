@@ -1,15 +1,26 @@
 // Decides whether a request runs locally or against the cloud endpoint.
 // Deliverable 3 reference: section 6.5
 
-import { CLOUD_ENDPOINT_URL, CLOUD_TIMEOUT_MS } from '../config';
+import { CLOUD_ENDPOINT_URL, CLOUD_TIMEOUT_MS, TASK_TEMPERATURE } from '../config';
 import type { RetrievedChunk } from '../types/models';
-import { generate, isModelLoaded, loadGenerationModel } from './GenerationService';
+import {
+  generate,
+  isModelLoaded,
+  lastGenerationWasCut,
+  loadGenerationModel,
+} from './GenerationService';
 import { getPreferences } from './PreferencesService';
 import { buildPrompt, type Task } from './PromptBuilder';
 
 // Only one generation at a time: a small on-device model cannot run two at once,
 // and a double-tap on a button would otherwise try.
 let busy = false;
+let lastCut = false;
+
+/** True if the text from the last dispatch() was cut off by the output limit (never for the cloud). */
+export function lastDispatchWasCut(): boolean {
+  return lastCut;
+}
 
 /** True while a dispatch() call is running. */
 export function isRouterBusy(): boolean {
@@ -46,11 +57,17 @@ async function runCloud(prompt: string): Promise<string> {
 }
 
 /** Runs the prompt on the on-device model, loading it first if needed. */
-async function runLocal(prompt: string, onToken?: (t: string) => void): Promise<string> {
+async function runLocal(
+  prompt: string,
+  task: Task,
+  onToken?: (t: string) => void,
+): Promise<string> {
   if (!isModelLoaded()) {
     await loadGenerationModel();
   }
-  return generate(prompt, onToken);
+  const text = await generate(prompt, onToken, TASK_TEMPERATURE[task]);
+  lastCut = lastGenerationWasCut();
+  return text;
 }
 
 /**
@@ -67,6 +84,7 @@ export async function dispatch(
     throw new Error('A generation is already running. Wait for it to finish.');
   }
   busy = true;
+  lastCut = false;
   try {
     const prompt = buildPrompt(task, chunks, userText);
 
@@ -83,7 +101,7 @@ export async function dispatch(
     }
 
     console.log('[dispatch] running on device');
-    return await runLocal(prompt, onToken);
+    return await runLocal(prompt, task, onToken);
   } finally {
     busy = false;
   }

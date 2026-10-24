@@ -2,6 +2,7 @@
 // Screens call generateForMaterial() and nothing lower in the inference layer.
 // Deliverable 3 reference: section 6.2, inference layer
 
+import { MAX_QA_PAIRS, MIN_QA_PAIRS } from '../config';
 import {
   createFlashcards,
   createGenerationHistory,
@@ -15,8 +16,8 @@ import type {
   RetrievedChunk,
 } from '../types/models';
 import { sampleChunks } from './ChunkSampler';
-import { dispatch, isRouterBusy } from './InferenceRouter';
-import { parseQAPairs } from './OutputParser';
+import { dispatch, isRouterBusy, lastDispatchWasCut } from './InferenceRouter';
+import { endsWithDanglingQuestion, parseQAPairs } from './OutputParser';
 import type { Task } from './PromptBuilder';
 import { retrieve } from './RetrievalService';
 
@@ -66,16 +67,38 @@ async function pickContext(
   return sampleChunks(chunks.filter((chunk) => chunk.ExtractedText.trim() !== ''));
 }
 
-/** Turns the model's raw text into the result saved in history. Throws if it cannot be read. */
-function shapeResult(task: Task, text: string): GenerationHistoryResult {
+/**
+ * Turns the model's raw text into the result saved in history. Throws if it cannot be read.
+ * `cut` is true when the model stopped because it hit the output limit, so its last pair may end
+ * mid-sentence.
+ */
+function shapeResult(task: Task, text: string, cut: boolean): GenerationHistoryResult {
   if (task === 'summary' || task === 'freeform') {
     const trimmed = text.trim();
     if (!trimmed) throw new Error('The AI returned no text. Please try again.');
     return { kind: 'text', text: trimmed };
   }
 
-  const pairs = parseQAPairs(text);
-  if (pairs.length === 0) throw new Error("Couldn't read the AI's answer. Please try again.");
+  let pairs = parseQAPairs(text);
+  // A run cut off by the output limit usually ends inside its last answer. If it ended on the start
+  // of a next question instead, every parsed pair is complete and nothing is dropped. Otherwise drop
+  // the unfinished pair when there are enough others to spare, and mark it when there are not.
+  if (cut && !endsWithDanglingQuestion(text) && pairs.length > 0) {
+    if (pairs.length > MIN_QA_PAIRS) {
+      pairs = pairs.slice(0, -1);
+    } else {
+      const last = pairs[pairs.length - 1];
+      pairs = [...pairs.slice(0, -1), { ...last, answer: `${last.answer} ...` }];
+    }
+  }
+  pairs = pairs.slice(0, MAX_QA_PAIRS);
+  if (pairs.length < MIN_QA_PAIRS) {
+    throw new Error(
+      pairs.length === 1
+        ? 'The AI wrote only one usable item. Please try again, or add more notes.'
+        : "Couldn't read the AI's answer. Please try again.",
+    );
+  }
   if (task === 'questions') return { kind: 'question-answer', items: pairs };
   return {
     kind: 'flashcards',
@@ -148,7 +171,7 @@ export async function generateForMaterial(
     }
 
     const text = await dispatch(task, chunks, question, onToken);
-    const result = shapeResult(task, text);
+    const result = shapeResult(task, text, lastDispatchWasCut());
     return await saveResult(materialId, task, question || TASK_LABEL[task], result);
   } finally {
     running = false;

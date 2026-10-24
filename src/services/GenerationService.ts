@@ -3,13 +3,19 @@
 
 import { Directory, File, Paths } from 'expo-file-system';
 import { initLlama, LlamaContext } from 'llama.rn';
-import { CONTEXT_WINDOW_TOKENS, GENERATION_MODEL, RESERVED_OUTPUT_TOKENS } from '../config';
+import {
+  CONTEXT_WINDOW_TOKENS,
+  GENERATION_MODEL,
+  DEFAULT_TEMPERATURE,
+  RESERVED_OUTPUT_TOKENS,
+} from '../config';
 import { stripPath } from '../utils/paths';
 import { getAvailableModels } from './ModelManager';
 
 let context: LlamaContext | null = null;
 let loading: Promise<void> | null = null;
 let generating = false;
+let lastRunWasCut = false;
 
 /** Same folder ModelManager downloads and imports models into. */
 function modelsDirectory(): Directory {
@@ -66,12 +72,22 @@ export function isModelLoaded(): boolean {
   return context !== null;
 }
 
+/** True if the last generate() call stopped because it hit the output limit, so its text may end mid-sentence. */
+export function lastGenerationWasCut(): boolean {
+  return lastRunWasCut;
+}
+
 /** Generates a completion locally, streaming tokens to onToken if supplied. */
-export async function generate(prompt: string, onToken?: (t: string) => void): Promise<string> {
+export async function generate(
+  prompt: string,
+  onToken?: (t: string) => void,
+  temperature: number = DEFAULT_TEMPERATURE,
+): Promise<string> {
   if (!context) {
     throw new Error('No model currently loaded.');
   }
   const startTime = Date.now();
+  lastRunWasCut = false;
   generating = true;
   let result;
   try {
@@ -79,6 +95,7 @@ export async function generate(prompt: string, onToken?: (t: string) => void): P
       {
         messages: [{ role: 'user', content: prompt }],
         n_predict: RESERVED_OUTPUT_TOKENS,
+        temperature,
       },
       (data) => {
         // data.token is each piece of text output by the model
@@ -88,6 +105,9 @@ export async function generate(prompt: string, onToken?: (t: string) => void): P
   } finally {
     generating = false;
   }
+  // 599 of 600 is what a run that was cut off reports, so it counts as cut even if the flag is 0.
+  lastRunWasCut =
+    Boolean(result.stopped_limit) || result.tokens_predicted >= RESERVED_OUTPUT_TOKENS - 1;
   const seconds = ((Date.now() - startTime) / 1000).toFixed(1);
   console.log(
     `[generation] ${seconds}s, prompt tokens ${result.tokens_evaluated}, output tokens ${result.tokens_predicted}`,
