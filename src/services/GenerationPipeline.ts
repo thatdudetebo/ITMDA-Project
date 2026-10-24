@@ -21,7 +21,7 @@ import type { Task } from './PromptBuilder';
 import { retrieve } from './RetrievalService';
 
 /** Label saved as the history prompt when the user typed nothing. */
-export const TASK_LABEL: Record<Task, string> = {
+const TASK_LABEL: Record<Task, string> = {
   summary: 'Summary',
   flashcards: 'Flashcards',
   questions: 'Questions and answers',
